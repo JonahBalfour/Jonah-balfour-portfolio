@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#16223e">
+<meta name="robots" content="noindex, nofollow">
+<title>Blog Admin — Jonah Balfour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="name" href="../index.html">Jonah Balfour</a>
+    <span class="admin-badge">Admin</span>
+  </div>
+</header>
+
+<div id="authGate" class="wrap admin-gate">
+  <h1>Blog Admin</h1>
+  <p>Paste a GitHub <strong>fine-grained personal access token</strong>, scoped to just the
+    <code>Jonah-balfour-portfolio</code> repo with <strong>Contents: Read and write</strong> permission.
+    It's stored only in this browser and used to talk directly to GitHub — never sent anywhere else.</p>
+  <label class="admin-field">
+    <span>Personal access token</span>
+    <input type="password" id="tokenInput" placeholder="github_pat_..." autocomplete="off">
+  </label>
+  <button id="connectBtn" class="admin-btn-primary">Connect</button>
+  <p id="authStatus" class="admin-hint"></p>
+  <p id="authError" class="admin-status admin-status-error" hidden></p>
+  <p class="admin-hint">
+    <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">Create a token on GitHub →</a>
+  </p>
+</div>
+
+<div id="app" class="wrap" hidden>
+
+  <div class="admin-topbar">
+    <div>Connected to <strong>JonahBalfour/Jonah-balfour-portfolio</strong></div>
+    <button id="signOutBtn" class="admin-btn-secondary">Sign out</button>
+  </div>
+
+  <div class="admin-tabs">
+    <button class="admin-tab active" data-tab="editor" type="button">New Post</button>
+    <button class="admin-tab" data-tab="manage" type="button">Manage Posts</button>
+  </div>
+
+  <section id="editorView" class="admin-view">
+    <h2 id="editorHeading">New Post</h2>
+
+    <label class="admin-field">
+      <span>Title</span>
+      <input type="text" id="titleInput" placeholder="Post title">
+    </label>
+
+    <div class="admin-slug-row">
+      <span>Slug:</span>
+      <span id="slugDisplay" class="admin-slug-value">(enter a title)</span>
+      <input type="text" id="slugInput" class="admin-slug-input" hidden>
+      <button type="button" id="editSlugBtn" class="admin-link-btn">edit</button>
+    </div>
+
+    <div class="admin-field-row">
+      <label class="admin-field">
+        <span>Date</span>
+        <input type="date" id="dateInput">
+      </label>
+      <label class="admin-field">
+        <span>Tag</span>
+        <input type="text" id="tagInput" placeholder="e.g. Opinion">
+      </label>
+    </div>
+
+    <label class="admin-field">
+      <span>Summary <span class="admin-hint-inline">(short teaser shown on the blog list)</span></span>
+      <textarea id="summaryInput" rows="2" placeholder="One or two sentences"></textarea>
+    </label>
+
+    <div class="admin-field">
+      <span>Body</span>
+      <div class="admin-toolbar">
+        <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+        <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+        <button type="button" data-block="h2" title="Heading 2">H2</button>
+        <button type="button" data-block="h3" title="Heading 3">H3</button>
+        <button type="button" data-block="p" title="Paragraph">¶</button>
+        <button type="button" data-block="blockquote" title="Blockquote">&ldquo;&rdquo;</button>
+        <button type="button" id="linkBtn" title="Insert link">Link</button>
+        <button type="button" id="imageBtn" title="Insert image">Image</button>
+        <input type="file" id="imageFile" accept="image/*" hidden>
+      </div>
+      <div id="editor" class="post-content admin-editor" contenteditable="true"></div>
+    </div>
+
+    <div class="admin-actions">
+      <button id="publishBtn" class="admin-btn-primary">Publish</button>
+      <button id="cancelEditBtn" class="admin-btn-secondary" hidden>Cancel</button>
+    </div>
+
+    <div id="statusLog" class="admin-status-log"></div>
+  </section>
+
+  <section id="manageView" class="admin-view" hidden>
+    <h2>Manage Posts</h2>
+    <div id="postsList" class="admin-posts-list">Loading…</div>
+  </section>
+
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

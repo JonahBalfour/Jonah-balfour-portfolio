@@ -117,6 +117,39 @@ Then visit `http://localhost:8123/`, `http://localhost:8123/projects/index.html`
 A `.claude/launch.json` in this repo is already configured to do this via
 the Claude Code browser preview (`static-preview`).
 
+## Admin tool (`admin/`)
+
+A hand-rolled, git-backed blog admin at `admin/` lets Jonah write, edit,
+and delete blog posts from a browser instead of hand-editing HTML.
+
+- Unlisted (not in any nav) but **publicly reachable** at
+  `jonahbalfour.com/admin/` — it carries no secrets of its own and does
+  nothing without a token.
+- Auth: paste a GitHub **fine-grained personal access token** (scoped to
+  this repo only, Contents read/write, 90-day expiration recommended).
+  It's stored only in that browser's `localStorage` and used solely for
+  direct browser → `api.github.com` calls — never committed, never sent
+  anywhere else.
+- Publishing/editing/deleting a post = real commits straight to `main`
+  via the GitHub Contents API (new post: media → post file → index
+  update; edit/delete follow the same pattern). No server, no build step
+  — consistent with the rest of this repo.
+- No external JS library — the rich-text editor is hand-rolled
+  (`contenteditable` + `document.execCommand`) to keep the site's
+  zero-dependency pattern intact.
+- **Residual risk, by design, not oversight**: anyone with access to that
+  browser session/profile (shared or compromised machine, devtools, a
+  malicious extension) could read the token and publish/edit/delete until
+  it's revoked. Security rests on URL obscurity plus a narrowly-scoped,
+  time-limited PAT, revocable anytime at
+  `github.com/settings/tokens?type=beta`. There's no undo beyond a manual
+  follow-up edit/delete — same "what's committed is what's served"
+  model as everything else in this repo.
+- v1 has no image resize/compression (GitHub's Contents API caps files at
+  ~1MB) and no atomic multi-file commits (sequential PUTs, chosen for
+  simplicity over Git Data API atomicity — see partial-failure handling
+  in the tool's status log / retry buttons).
+
 ## Decisions on record
 
 - Dashboard and game are kept as **static output only** in this repo, not
