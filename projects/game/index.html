@@ -1,0 +1,2539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nefesh — Prototype Board</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#221712">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nefesh">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Spectral:ital,wght@0,400;0,600;1,400&family=Spectral+SC:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C1712;
+    --parchment:#EAD9B4;
+    --parchment-dim:#d9c69c;
+    --wood-dark:#221712;
+    --wood:#3a2a1d;
+    --wood-light:#4d3826;
+    --rust:#a8471f;
+    --rust-light:#c25a2c;
+    --rust-dark:#7a3115;
+    --gold:#c9973f;
+    --gold-bright:#e0b25a;
+    --gold-text:#e6bd6c;
+    --cream:#efe3c8;
+    --white-piece:#f4ecd8;
+    --black-piece:#141110;
+    --danger:#8a2e1f;
+
+    /* Spacing scale - everything below snaps to this 4/8pt rhythm. */
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px;
+    --sp-6:24px; --sp-7:32px; --sp-8:40px; --sp-9:48px;
+
+    /* Type scale. */
+    --fs-xs:12px; --fs-sm:13px; --fs-base:14px; --fs-md:15px;
+    --fs-lg:18px; --fs-xl:24px; --fs-2xl:32px; --fs-display:42px;
+
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-pill:999px;
+
+    /* Elevation - layered shadows read as "lifted off the table". */
+    --shadow-1:0 1px 2px rgba(0,0,0,0.35);
+    --shadow-2:0 6px 16px rgba(0,0,0,0.38);
+    --shadow-3:0 18px 44px rgba(0,0,0,0.5);
+    --bevel-top:inset 0 1px 0 rgba(255,255,255,0.08);
+    --bevel-bottom:inset 0 -1px 0 rgba(0,0,0,0.25);
+
+    --ease:cubic-bezier(.2,.7,.3,1);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 30% 0%, #4a3423 0%, transparent 60%),
+      linear-gradient(160deg, var(--wood-dark), var(--wood) 60%, var(--wood-dark));
+    font-family:'Spectral',serif;
+    color:var(--cream);
+    padding:var(--sp-6);
+  }
+  ::selection{ background:var(--gold); color:var(--ink); }
+  :focus-visible{ outline:2px solid var(--gold-bright); outline-offset:2px; border-radius:4px; }
+  h1.title{
+    font-family:'Rye',serif;
+    text-align:center;
+    font-size:var(--fs-display);
+    letter-spacing:4px;
+    color:var(--gold-bright);
+    margin:0 0 2px 0;
+    text-shadow:0 2px 0 rgba(0,0,0,0.5);
+  }
+  .subtitle{
+    text-align:center;
+    font-style:italic;
+    color:var(--parchment-dim);
+    margin:0 0 var(--sp-5) 0;
+    font-size:var(--fs-base);
+    letter-spacing:1px;
+  }
+  .app{
+    display:flex;
+    gap:var(--sp-6);
+    max-width:1680px;
+    margin:0 auto;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+  .board-panel{
+    flex:1 1 560px;
+    min-width:560px;
+    /* Fractal-noise grain layered under the existing wood gradient, so it
+       reads as a real wood surface instead of a flat CSS gradient. Streaked
+       (low frequency along x, higher along y) rather than uniform static so
+       it reads as long horizontal grain lines, the way real wood does. */
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012 0.35' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      /* Lighter than the shared --wood/--wood-light tokens (which stay as
+         they are for the rest of the UI) - just for this panel's surface. */
+      linear-gradient(180deg,#6b5138,#523d29);
+    border:1px solid #5c422c;
+    border-radius:var(--radius-lg);
+    padding:var(--sp-4);
+    box-shadow:0 10px 30px rgba(0,0,0,0.4) inset, var(--shadow-3);
+  }
+  .control-panel{
+    flex:0 1 340px;
+    min-width:320px;
+    max-width:340px;
+    display:flex;
+    flex-direction:column;
+    gap:var(--sp-4);
+  }
+  .panel-box{
+    background:linear-gradient(180deg,var(--wood-light),var(--wood));
+    border:1px solid #5c422c;
+    border-radius:var(--radius-md);
+    padding:var(--sp-4) var(--sp-5);
+    box-shadow:var(--shadow-2), var(--bevel-top);
+  }
+  .panel-title{
+    font-family:'Spectral SC',serif;
+    letter-spacing:2px;
+    font-size:var(--fs-sm);
+    color:var(--gold-text);
+    margin:0 0 var(--sp-3) 0;
+    border-bottom:1px solid #5c422c;
+    padding-bottom:var(--sp-2);
+  }
+  .row{display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3);}
+  .pill{
+    display:inline-block;
+    padding:5px 14px;
+    border-radius:var(--radius-pill);
+    font-size:var(--fs-sm);
+    font-weight:600;
+    border:1px solid var(--gold);
+    box-shadow:var(--shadow-1);
+  }
+  .pill.white{background:var(--white-piece); color:var(--ink);}
+  .pill.black{background:var(--black-piece); color:var(--cream); border-color:#555;}
+
+  /* --- Buttons: a real hierarchy instead of one style for everything. ---
+     .btn-primary  - the one action you take almost every turn (Roll Dice)
+     .btn-secondary - top-level navigation / commitments (How to Play, Menu, New Game, Start Game)
+     button (bare)  - tertiary/utility default (Close, tabs, Flip Board, Copy...) */
+  button{
+    font-family:'Spectral',serif;
+    font-weight:600;
+    background:linear-gradient(180deg,#332419,#241a12);
+    color:var(--cream);
+    border:1px solid #6e5a42;
+    border-radius:var(--radius-sm);
+    padding:10px var(--sp-4);
+    min-height:40px;
+    cursor:pointer;
+    font-size:var(--fs-sm);
+    letter-spacing:0.3px;
+    box-shadow:var(--shadow-1), var(--bevel-top);
+    transition:background 0.15s var(--ease), border-color 0.15s var(--ease), transform 0.1s var(--ease), box-shadow 0.15s var(--ease);
+  }
+  button:hover:not(:disabled){ border-color:#8a7157; transform:translateY(-1px); box-shadow:var(--shadow-2), var(--bevel-top); }
+  button:active:not(:disabled){ transform:translateY(1px); box-shadow:var(--shadow-1); }
+  button:disabled{background:#5a4a3c; color:#93867a; cursor:not-allowed; border-color:#4a3c30; box-shadow:none;}
+
+  .btn-secondary{
+    background:linear-gradient(180deg,var(--rust-light),var(--rust));
+    border:1px solid var(--rust-dark);
+    min-height:44px;
+  }
+  .btn-secondary:hover:not(:disabled){ background:linear-gradient(180deg,#d3673a,var(--rust-light)); border-color:#8a3d1e; }
+
+  .btn-primary{
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+    color:var(--ink);
+    border:1px solid #8a6425;
+    font-weight:700;
+    font-size:var(--fs-base);
+    padding:11px var(--sp-6);
+    min-height:44px;
+    box-shadow:0 0 0 1px rgba(224,178,90,0.25), var(--shadow-2), var(--bevel-top);
+  }
+  .btn-primary:hover:not(:disabled){
+    background:linear-gradient(180deg,#eec178,var(--gold-bright));
+    box-shadow:0 0 0 1px rgba(224,178,90,0.4), var(--shadow-3), var(--bevel-top);
+  }
+  .btn-primary:disabled{ background:#5a4a3c; color:#93867a; box-shadow:none; }
+
+  .btn-icon{
+    width:44px; height:44px; padding:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:18px; line-height:1;
+  }
+
+  .btn-sm{ min-height:32px; padding:6px var(--sp-3); font-size:var(--fs-xs); }
+
+  .select-field{
+    width:100%; min-height:40px; padding:8px var(--sp-3);
+    font-family:'Spectral',serif; font-size:var(--fs-sm);
+    background:#2c2018; color:var(--cream);
+    border:1px solid var(--gold); border-radius:var(--radius-sm);
+    box-shadow:var(--shadow-1), var(--bevel-top);
+    transition:border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  }
+  .select-field:hover{ border-color:var(--gold-bright); }
+  .select-field:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:1px; }
+
+  .dice-row{display:flex; gap:var(--sp-3); align-items:center; margin:var(--sp-2) 0;}
+  .die{
+    width:44px;height:44px;border-radius:var(--radius-sm);
+    background:linear-gradient(155deg,#fbf5e6,var(--parchment));
+    border:1px solid #8a7757;
+    box-shadow:0 2px 4px rgba(0,0,0,0.4), var(--bevel-top);
+    display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+    padding:6px; gap:1px;
+  }
+  .die .pip{
+    width:100%; aspect-ratio:1; border-radius:50%;
+    background:var(--ink); align-self:center; justify-self:center;
+  }
+  .die .pip.p1{grid-area:1/1;} .die .pip.p2{grid-area:1/3;}
+  .die .pip.p3{grid-area:2/1;} .die .pip.p4{grid-area:2/2;} .die .pip.p5{grid-area:2/3;}
+  .die .pip.p6{grid-area:3/1;} .die .pip.p7{grid-area:3/3;}
+  .move-options{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:var(--sp-2);}
+  .move-chip{
+    background:#2c2018; border:1px solid var(--gold); color:var(--cream);
+    border-radius:var(--radius-sm); padding:4px 10px; font-size:var(--fs-xs);
+  }
+  .bench-section{margin-bottom:var(--sp-2);}
+  .bench-list{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-top:var(--sp-2);}
+  .piece-btn{
+    display:flex; flex-direction:column; align-items:center;
+    width:52px; padding:6px 2px;
+    border-radius:var(--radius-sm); border:1px solid #6e5a42;
+    background:#2c2018; color:var(--cream);
+    cursor:pointer; font-size:10px; line-height:1.2;
+  }
+  .piece-btn .abbr{font-size:15px; font-weight:700; font-family:'Spectral SC';}
+  .piece-btn.selected{border-color:var(--gold-bright); box-shadow:0 0 0 2px var(--gold-bright);}
+  .piece-btn.captured{opacity:0.35; text-decoration:line-through; cursor:not-allowed;}
+  .piece-btn.onboard{border-color:#3f7a4a;}
+  .piece-btn:disabled, .piece-btn.disabled{opacity:0.4; cursor:not-allowed;}
+  .legal-move-space{cursor:pointer;}
+  #log{
+    max-height:130px; overflow-y:auto; font-size:var(--fs-xs);
+    color:var(--parchment-dim); display:flex; flex-direction:column; gap:var(--sp-1);
+    padding-right:var(--sp-1);
+  }
+  details summary{cursor:pointer; color:var(--gold-text); font-size:var(--fs-xs); margin-bottom:var(--sp-2);}
+  details p, details li{font-size:var(--fs-xs); color:var(--parchment-dim); line-height:1.5;}
+  .top-actions{
+    position:fixed; top:var(--sp-4); right:var(--sp-4); z-index:20;
+    display:flex; gap:var(--sp-3);
+  }
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,6,4,0.82);
+    display:none; align-items:center; justify-content:center; z-index:50;
+    backdrop-filter:blur(2px);
+  }
+  .overlay.show{display:flex; animation:overlay-fade 0.15s var(--ease);}
+  @keyframes overlay-fade{ from{opacity:0;} to{opacity:1;} }
+  .overlay-box{
+    background:linear-gradient(180deg,var(--wood-light),var(--wood-dark));
+    border:2px solid var(--gold); border-radius:var(--radius-lg);
+    padding:var(--sp-7) var(--sp-8); text-align:center; max-width:420px;
+    box-shadow:var(--shadow-3), var(--bevel-top);
+    animation:overlay-rise 0.2s var(--ease);
+  }
+  @keyframes overlay-rise{ from{opacity:0; transform:translateY(8px) scale(0.98);} to{opacity:1; transform:none;} }
+  .overlay-box h2{font-family:'Rye'; color:var(--gold-bright); font-size:var(--fs-2xl); margin:0 0 var(--sp-2);}
+  .overlay-box p{color:var(--parchment); font-size:var(--fs-base);}
+  small.hint{color:#a89a86; font-size:var(--fs-xs);}
+  .howto-tab-btn{background:#2c2018; border:1px solid #6e5a42;}
+  .howto-tab-btn.active{background:linear-gradient(180deg,var(--rust-light),var(--rust)); border-color:var(--rust-dark);}
+  .menu-tab-btn{background:#2c2018; border:1px solid #6e5a42;}
+  .menu-tab-btn.active{background:linear-gradient(180deg,var(--rust-light),var(--rust)); border-color:var(--rust-dark);}
+  #howto-content h3{font-family:'Spectral SC',serif; letter-spacing:1px; color:var(--gold-text); font-size:var(--fs-base); margin:var(--sp-5) 0 var(--sp-2);}
+  #howto-content h3:first-child{margin-top:0;}
+  #howto-content p{margin:0 0 var(--sp-3); max-width:64ch;}
+  #howto-content ul{margin:0 0 var(--sp-3); padding-left:20px;}
+  #howto-content li{margin-bottom:var(--sp-2); max-width:64ch;}
+  #howto-content b{color:var(--gold-bright);}
+  #menu-tab-pieces p, #menu-tab-pieces li, #menu-tab-notes p, #menu-tab-notes li{ max-width:64ch; }
+  #menu-tab-notes li{ margin-bottom:var(--sp-2); }
+  .menu-tab-heading{font-family:'Spectral SC',serif; letter-spacing:1px; color:var(--gold-text); font-size:var(--fs-base); margin:0 0 var(--sp-2);}
+
+  /* Phones only play this game in landscape - portrait is blocked entirely
+     by #rotate-prompt below, so this block just needs to size the prompt
+     itself and hide the game underneath it. Scoped to phone widths (not
+     tablets) via max-width so an iPad in portrait keeps the normal desktop
+     layout, which already fits it fine. */
+  #rotate-prompt{ display:none; }
+  @media (max-width: 600px) and (orientation: portrait){
+    body > *:not(#rotate-prompt){ display:none !important; }
+    #rotate-prompt{
+      display:flex; position:fixed; inset:0; z-index:100;
+      flex-direction:column; align-items:center; justify-content:center;
+      gap:var(--sp-5); padding:var(--sp-6); text-align:center;
+      background:linear-gradient(160deg, var(--wood-dark), var(--wood) 60%, var(--wood-dark));
+    }
+  }
+  @media (max-width: 700px){
+    body{ padding:var(--sp-3); }
+    .overlay-box{ max-width:calc(100vw - 32px); padding:var(--sp-6) var(--sp-5); }
+  }
+
+  /* A phone held sideways is wide enough for the desktop side-by-side shape,
+     but far too short for it - stacking would leave most of the board
+     scrolled off-screen. So a landscape phone gets its own shape instead:
+     title/subtitle hidden to reclaim vertical space, and the board + a
+     narrow always-visible sidebar sit side by side, both capped to the
+     viewport's height so nothing needs a page scroll to reach the dice, and
+     the board itself is given as much of that space as the sidebar can
+     spare so it reads as the main event rather than a cramped afterthought. */
+  @media (max-height: 500px) and (orientation: landscape){
+    body{ padding:4px; }
+    h1.title, .subtitle{ display:none; }
+    /* No title above to give the fixed corner buttons clear air here - they'd
+       sit on top of the control panel's own content instead. Back to an
+       in-flow row above the board, like before the corner treatment. */
+    .top-actions{ position:static; display:flex; gap:6px; justify-content:center; margin-bottom:4px; }
+    .top-actions button{ min-height:30px; padding:5px 10px; font-size:11px; }
+    .app{ flex-direction:row; flex-wrap:nowrap; gap:6px; align-items:stretch; max-width:none; }
+    /* vh is the *largest* possible viewport in mobile Safari - it doesn't
+       shrink when the address bar is showing the way an installed app's
+       fullscreen viewport does. dvh tracks what's actually visible right
+       now, so it's declared second to override vh wherever it's supported,
+       with the vh value left in place as a fallback where it isn't. */
+    .board-panel{ min-width:0; flex:1 1 auto; width:auto; padding:4px; display:flex; align-items:center; justify-content:center; max-height:calc(100vh - 42px); max-height:calc(100dvh - 42px); }
+    #board-svg{ width:auto !important; height:100% !important; max-width:100%; max-height:calc(100vh - 50px); max-height:calc(100dvh - 50px); }
+    .control-panel{ min-width:130px; max-width:165px; flex:0 0 155px; gap:6px; overflow-y:auto; max-height:calc(100vh - 42px); max-height:calc(100dvh - 42px); }
+    .panel-box{ padding:6px var(--sp-2); }
+    .panel-title{ margin-bottom:4px; padding-bottom:3px; font-size:11px; }
+    /* At this width "Round 1" and a "Now acting" pill side by side wrap into
+       an unreadable stack of single words - give each its own line instead. */
+    .control-panel .row{ flex-direction:column; align-items:flex-start; gap:4px; }
+    .dice-row{ margin:4px 0; gap:6px; flex-wrap:wrap; }
+    .die{ width:30px; height:30px; padding:4px; }
+    #roll-btn{ min-height:30px; padding:5px 8px; font-size:11px; }
+    .move-options{ gap:4px; margin-top:4px; }
+    .move-chip{ padding:2px 6px; font-size:10px; }
+    #match-summary, #body-status{ font-size:11px !important; margin-bottom:6px !important; }
+    #flip-board-row span{ display:none; } /* hint text - the icon-free button alone is enough once space is this tight */
+    #pass-btn{ font-size:10px; padding:5px 8px; min-height:0; }
+    #turn-status{ font-size:10px !important; }
+    .piece-btn{ width:42px; padding:4px 2px; font-size:9px; }
+    .piece-btn .abbr{ font-size:13px; }
+
+    /* Overlays (New Game, How to Play, Menu) center their box with no
+       scroll of their own - fine on desktop, but on a short landscape
+       phone a tall box gets clipped equally off the top and bottom with
+       no way to reach the rest, including the Start Game button. Let the
+       overlay itself scroll and top-align instead of centering, and trim
+       the box's padding so more of it is visible without scrolling at all. */
+    .overlay{ align-items:flex-start; overflow-y:auto; padding:6px 0; -webkit-overflow-scrolling:touch; }
+    .overlay-box{ margin:0 auto; max-height:none; padding:10px var(--sp-4) !important; max-width:min(92vw, 640px) !important; }
+    .overlay-box h2{ font-size:var(--fs-lg); }
+    .overlay-box .row[style*="margin-bottom:var(--sp-4)"]{ margin-bottom:6px !important; }
+    /* New Game's mode list and (once a Computer opponent is picked) its
+       persona/difficulty pickers stack tall enough on their own to force a
+       scroll on a short screen even at this width - side by side they fit
+       one landscape phone screen with room to spare. Kept deliberately
+       tight (small gaps, shorter selects) since an installed app's
+       fullscreen viewport has noticeably more room than the same phone's
+       browser tab, whose address-bar chrome eats into the space above. */
+    #setup-body{ display:flex; gap:var(--sp-3); align-items:flex-start; }
+    #setup-mode-list, #setup-picker{ flex:1 1 0; margin-bottom:6px !important; gap:6px !important; }
+    #setup-picker .select-field{ min-height:32px; padding:4px var(--sp-2); }
+    #setup-picker > div{ margin-bottom:4px !important; margin-top:4px !important; }
+    #setup-start-btn{ min-height:36px; padding:8px var(--sp-4); }
+    #howto-overlay .overlay-box, #menu-overlay .overlay-box{ max-width:min(94vw, 820px) !important; }
+  }
+  .rotate-icon{
+    width:64px; height:64px; border:3px solid var(--gold-bright); border-radius:8px;
+    position:relative; animation:rotate-hint 1.8s ease-in-out infinite;
+  }
+  .rotate-icon::after{
+    content:''; position:absolute; bottom:-14px; left:50%; transform:translateX(-50%);
+    width:8px; height:8px; border-radius:50%; background:var(--gold-bright);
+  }
+  @keyframes rotate-hint{
+    0%, 15%{ transform:rotate(0deg); } 50%, 65%{ transform:rotate(90deg); } 100%{ transform:rotate(90deg); }
+  }
+  @media (prefers-reduced-motion: reduce){ .rotate-icon{ animation:none; transform:rotate(90deg); } }
+</style>
+</head>
+<body>
+
+<div id="rotate-prompt">
+  <div class="rotate-icon"></div>
+  <div>
+    <h1 class="title" style="font-size:28px; margin-bottom:var(--sp-2);">NEFESH</h1>
+    <p style="margin:0; color:var(--parchment); font-size:var(--fs-base);">Rotate your device — Nefesh plays best in landscape.</p>
+  </div>
+</div>
+
+<h1 class="title">NEFESH</h1>
+<p class="subtitle">a prototype board for playtesting — click to place, move, and capture</p>
+<div class="top-actions">
+  <button id="howto-btn" class="btn-secondary">How to Play</button>
+  <button id="menu-btn" class="btn-secondary btn-icon" title="Menu">&#9776;</button>
+</div>
+
+<div class="app">
+
+  <div class="board-panel">
+    <svg id="board-svg" viewBox="0 0 840 600" style="width:100%; height:auto;"></svg>
+  </div>
+
+  <div class="control-panel">
+
+    <div class="panel-box">
+      <div class="panel-title">ROUND</div>
+      <div class="row">
+        <div>Round <b id="round-num">1</b></div>
+        <div>Now acting: <span id="acting-pill" class="pill white">White</span></div>
+      </div>
+      <div class="dice-row">
+        <div class="die" id="die1">–</div>
+        <div class="die" id="die2">–</div>
+        <button id="roll-btn" class="btn-primary">Roll dice</button>
+      </div>
+      <div id="move-options" class="move-options"></div>
+      <div class="row" style="margin-top:var(--sp-3);">
+        <button id="pass-btn" disabled>Declare Draw (no legal action)</button>
+        <span id="turn-status" style="font-size:12px; color:var(--parchment-dim);"></span>
+      </div>
+    </div>
+
+    <div class="panel-box">
+      <div class="panel-title">MATCH</div>
+      <div id="match-summary" style="font-size:13px; margin-bottom:10px;"></div>
+      <div id="body-status" style="font-size:12px; color:var(--parchment-dim); margin-bottom:10px;"></div>
+      <div id="flip-board-row">
+        <button id="flip-board-btn" class="btn-sm">Flip Board</button>
+        <span style="font-size:var(--fs-xs); color:var(--parchment-dim); margin-left:var(--sp-2);">Turn the board for the other player</span>
+      </div>
+      <div id="bot-thinking" style="font-size:var(--fs-xs); color:var(--gold-text); margin-top:var(--sp-2); display:none;">Computer is thinking…</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="overlay" id="win-overlay">
+  <div class="overlay-box">
+    <h2 id="win-title">White wins</h2>
+    <p id="win-reason"></p>
+    <button id="reset-btn" class="btn-primary" style="margin-top:var(--sp-3);">New game</button>
+  </div>
+</div>
+
+<div class="overlay" id="setup-overlay">
+  <div class="overlay-box" style="max-width:420px; text-align:left; padding:var(--sp-6) var(--sp-7);">
+    <div class="row" style="align-items:flex-start; margin-bottom:var(--sp-4);">
+      <h2 style="margin:0;">New Game</h2>
+      <button id="setup-close-btn" class="btn-sm">Close</button>
+    </div>
+    <div id="setup-body">
+      <div id="setup-mode-list" style="display:flex; flex-direction:column; gap:var(--sp-2); font-size:var(--fs-base); margin-bottom:var(--sp-4);">
+        <label><input type="radio" name="setup-mode" value="pvp" checked> Two players (pass &amp; play)</label>
+        <label><input type="radio" name="setup-mode" value="bot-black"> Play as White vs Computer</label>
+        <label><input type="radio" name="setup-mode" value="bot-white"> Play as Black vs Computer</label>
+      </div>
+      <div id="setup-picker" style="display:none; margin-bottom:var(--sp-4);">
+        <div style="font-size:var(--fs-xs); color:var(--parchment-dim); margin-bottom:var(--sp-2);">Play style:</div>
+        <select id="setup-persona-select" class="select-field"></select>
+        <div id="setup-persona-blurb" style="font-size:var(--fs-xs); color:var(--parchment-dim); margin-top:var(--sp-2); margin-bottom:var(--sp-3); font-style:italic;"></div>
+
+        <div style="font-size:var(--fs-xs); color:var(--parchment-dim); margin-bottom:var(--sp-2);">Difficulty:</div>
+        <select id="setup-difficulty-select" class="select-field"></select>
+        <div id="setup-difficulty-blurb" style="font-size:var(--fs-xs); color:var(--parchment-dim); margin-top:var(--sp-2); font-style:italic;"></div>
+      </div>
+    </div>
+    <button id="setup-start-btn" class="btn-primary" style="width:100%;">Start Game</button>
+  </div>
+</div>
+
+<div class="overlay" id="howto-overlay">
+  <div class="overlay-box" style="max-width:720px; max-height:82vh; overflow-y:auto; text-align:left; padding:var(--sp-6) var(--sp-7);">
+    <div class="row" style="align-items:flex-start; margin-bottom:var(--sp-4);">
+      <h2 style="margin:0;">How to Play</h2>
+      <button id="howto-close-btn" class="btn-sm">Close</button>
+    </div>
+    <div style="display:flex; gap:var(--sp-2); margin-bottom:var(--sp-5); flex-wrap:wrap;">
+      <button class="howto-tab-btn" data-tab="rules">Rules</button>
+      <button class="howto-tab-btn" data-tab="strategy">Strategy Tips</button>
+      <button class="howto-tab-btn" data-tab="personas">Persona Guide</button>
+    </div>
+    <div id="howto-content" style="font-size:var(--fs-base); line-height:1.65; color:var(--parchment);"></div>
+  </div>
+</div>
+
+<div class="overlay" id="menu-overlay">
+  <div class="overlay-box" style="max-width:600px; max-height:82vh; overflow-y:auto; text-align:left; padding:var(--sp-6) var(--sp-7);">
+    <div class="row" style="align-items:flex-start; margin-bottom:var(--sp-4);">
+      <h2 style="margin:0;">Menu</h2>
+      <button id="menu-close-btn" class="btn-sm">Close</button>
+    </div>
+    <button id="menu-newgame-btn" class="btn-secondary" style="width:100%; margin-bottom:var(--sp-5);">New Game…</button>
+    <div class="row" style="margin-bottom:var(--sp-5);">
+      <span style="font-size:var(--fs-base); color:var(--parchment);">Sound effects</span>
+      <button id="sound-toggle-btn" class="btn-sm"></button>
+    </div>
+    <div style="display:flex; gap:var(--sp-2); margin-bottom:var(--sp-5); flex-wrap:wrap;">
+      <button class="menu-tab-btn" data-tab="log">Log</button>
+      <button class="menu-tab-btn" data-tab="pieces">Piece Reference</button>
+      <button class="menu-tab-btn" data-tab="notes">Designer Notes</button>
+    </div>
+
+    <div id="menu-tab-log">
+      <div id="last-game-note" style="display:none; font-size:var(--fs-xs); color:var(--gold-text); margin-bottom:var(--sp-2); align-items:center; gap:var(--sp-2);">
+        A previous game's log was auto-saved.
+        <button id="copy-lastgame-btn" class="btn-sm" style="margin-left:var(--sp-2);">Copy it</button>
+      </div>
+      <div class="row" style="margin-bottom:var(--sp-2); justify-content:flex-end;">
+        <button id="copy-log-btn" class="btn-sm">Copy current log</button>
+      </div>
+      <textarea id="log-copy-area" readonly style="display:none; width:100%; height:90px; margin-bottom:var(--sp-2); background:#2c2018; color:var(--cream); border:1px solid var(--gold); border-radius:var(--radius-sm); font-size:var(--fs-xs); padding:var(--sp-2);"></textarea>
+      <div id="log" style="font-size:var(--fs-base); line-height:1.65; color:var(--parchment);"></div>
+    </div>
+
+    <div id="menu-tab-pieces" style="display:none; font-size:var(--fs-base); line-height:1.65; color:var(--parchment);">
+      <h3 class="menu-tab-heading">PIECE BONUSES</h3>
+      <p style="margin:0 0 var(--sp-3);">Every move is the dice sum plus the moving piece's flat bonus, always fully applied:</p>
+      <ul style="margin:0 0 var(--sp-4); padding-left:20px;">
+        <li style="margin-bottom:var(--sp-2);">Creature +0 &middot; Dwarf +1 &middot; Man +2 &middot; Elf +3 (Race pieces - forward only)</li>
+        <li>Mind +1 &middot; Will +2 &middot; Body +3 &middot; Soul no bonus, but wins by reaching the Infinite (Person pieces - forward or backward)</li>
+      </ul>
+      <h3 class="menu-tab-heading">SOUL STATUS</h3>
+      <p id="soul-status-white" style="margin:0 0 var(--sp-2);"></p>
+      <p id="soul-status-black" style="margin:0;"></p>
+    </div>
+
+    <div id="menu-tab-notes" style="display:none; font-size:var(--fs-sm); color:var(--parchment-dim); line-height:1.5;">
+      <p style="margin:0 0 var(--sp-3);">A few judgment calls made to get this playable — flag anything that's wrong and it can be adjusted:</p>
+      <ul style="margin:0; padding-left:20px;">
+        <li style="margin-bottom:8px;">The 4 central-ring spaces are modeled as a single set passed through once per lap (not twice), sitting between the two loops in the sequence. If Nefesh's real geometry passes through center twice per figure-8 lap, this needs revising.</li>
+        <li style="margin-bottom:8px;">Movement uses only the sum of both dice — d1 and d2 alone, and their difference, aren't usable as a move length. A piece's bonus is a flat add, always fully applied on top of that sum (not a range you choose from).</li>
+        <li style="margin-bottom:8px;">The 4 Race pieces (Creature, Dwarf, Man, Elf) start the game already on the board instead of on the bench — no placement needed for these. Only the 4 Person pieces (Mind, Will, Body, Soul) still need to be placed.</li>
+        <li style="margin-bottom:8px;">Placement can happen on your turn even after the dice are rolled (rules say placement must happen before the roll — simplified here so the turn structure stays simple; you can self-enforce the stricter timing at the table).</li>
+        <li style="margin-bottom:8px;">The Soul can enter the Infinite by landing on either of the last two spaces of its circuit, once its own Body has been captured — not just an exact target space. Before that, it can't pass that threshold at all, so it can't shuttle back and forth near the end before it's unlocked.</li>
+        <li>Any piece that completes a full circuit — Soul included — simply wraps around and keeps going, rather than being captured.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const TRACK_LEN = 36;
+const LOOP_LEN = 16;
+
+// ---------- piece definitions ----------
+const PIECE_DEFS = [
+  {id:'creature', label:'Creature', abbr:'C', category:'race', bonus:0},
+  {id:'dwarf',    label:'Dwarf',    abbr:'D', category:'race', bonus:1},
+  {id:'man',      label:'Man',      abbr:'M', category:'race', bonus:2},
+  {id:'elf',      label:'Elf',      abbr:'E', category:'race', bonus:3},
+  {id:'mind',     label:'Mind',     abbr:'Mi', category:'person', bonus:1},
+  {id:'will',     label:'Will',     abbr:'W', category:'person', bonus:2},
+  {id:'body',     label:'Body',     abbr:'B', category:'person', bonus:3},
+  {id:'soul',     label:'Soul',     abbr:'S', category:'person', bonus:0},
+  // Homecoming extra copies: start locked (unplaceable) until their base
+  // piece completes a full circuit - see triggerHomecoming.
+  {id:'creature2', label:'Creature', abbr:'C2', category:'race', bonus:0, isExtra:true, baseId:'creature'},
+  {id:'dwarf2',    label:'Dwarf',    abbr:'D2', category:'race', bonus:1, isExtra:true, baseId:'dwarf'},
+  {id:'man2',      label:'Man',      abbr:'M2', category:'race', bonus:2, isExtra:true, baseId:'man'},
+  {id:'elf2',      label:'Elf',      abbr:'E2', category:'race', bonus:3, isExtra:true, baseId:'elf'},
+];
+function getDef(id){ return PIECE_DEFS.find(p=>p.id===id); }
+
+// ---------- geometry ----------
+// Two loops rendered as connected annulus wedges (like a checkerboard ring).
+// The hub is a SIMPLE circle divided into 4 quadrants by a cross (matching the
+// approved mockup and the original drawing) - NOT ribbons, not a bowtie.
+// The diagonal crossing (16-18, 17-19) is shown only as a symbolic X icon
+// inside the Infinite (see renderBoard), not by the shape of the quadrants.
+//
+// To connect cleanly to the loops with no gap: the hub circle is sized to
+// reach at least as far as the outer corners of the specific loop wedges
+// (15, 0, 20, 35) that border it - verified by calculation below, not
+// guessed - and is drawn UNDERNEATH the loops, so the loop wedges keep their
+// normal shape and the hub simply shows through in the small gap that would
+// otherwise appear at the seam.
+const Hx=420, Hy=300;
+// Loop and hub thickness (outer radius minus inner radius) bumped ~45%
+// wider per playtester feedback that the spaces felt small - grown evenly
+// outward and inward around the same centerline (171.5 for the loops, 62.5
+// for the hub) so labels/pieces, which sit at that centerline, don't shift,
+// and so the extra width comes from both directions instead of needing a
+// much bigger swing from only one side. This is close to the practical
+// ceiling within the current 840x600 canvas - much past this and the loops
+// start crowding the canvas edges on the smallest landscape phones. Going
+// further would mean widening the canvas itself, which reopens the
+// desktop/mobile width tradeoffs from the earlier "make the board bigger"
+// conversation.
+const HUB_R_OUT=94; // the hub sits on top now (no clipping)
+const HUB_R_IN=31;
+const INF_R=45;
+const LOOP_R_OUT=204, LOOP_R_IN=139;
+const LOOP_GAP=14; // the two loops are placed almost touching - only this much space between their nearest edges
+const Lx=Hx-LOOP_R_OUT-LOOP_GAP/2, Ly=Hy;
+const Rx=Hx+LOOP_R_OUT+LOOP_GAP/2, Ry=Hy;
+
+function wedgePath(cx,cy,rIn,rOut,a0,a1){
+  const large = (a1-a0) > Math.PI ? 1 : 0;
+  const p = (r,a)=>({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)});
+  const o0=p(rOut,a0), o1=p(rOut,a1), i1=p(rIn,a1), i0=p(rIn,a0);
+  return `M ${o0.x} ${o0.y} A ${rOut} ${rOut} 0 ${large} 1 ${o1.x} ${o1.y} `+
+         `L ${i1.x} ${i1.y} A ${rIn} ${rIn} 0 ${large} 0 ${i0.x} ${i0.y} Z`;
+}
+// A full ring (outer circle minus inner circle, via evenodd) - used for the
+// soft lighting "sheen" laid over each loop/hub, so it reads as one gently
+// domed surface instead of a flat set of tiles, without needing a separate
+// gradient per wedge.
+function annulusPath(cx,cy,rIn,rOut){
+  return `M ${cx-rOut} ${cy} A ${rOut} ${rOut} 0 1 0 ${cx+rOut} ${cy} A ${rOut} ${rOut} 0 1 0 ${cx-rOut} ${cy} Z `+
+         `M ${cx-rIn} ${cy} A ${rIn} ${rIn} 0 1 0 ${cx+rIn} ${cy} A ${rIn} ${rIn} 0 1 0 ${cx-rIn} ${cy} Z`;
+}
+// One-time visual defs (gradients + drop-shadow filters) for the fake-3D
+// pass: glossy radial-gradient piece tokens with a soft drop shadow so they
+// look raised off the board, a subtle rim-lit "sheen" for the loops/hub so
+// the board itself reads as gently domed rather than flat tiles, and a
+// slightly heavier shadow under the hub so it visibly sits above the loops
+// (it's already drawn on top, per the seam-covering trick above).
+function buildBoardDefs(){
+  const defs = el('defs',{});
+  const shadow = (id,dy,blur,opacity)=>{
+    const f = el('filter',{id, x:'-60%', y:'-60%', width:'220%', height:'220%'});
+    f.appendChild(el('feDropShadow',{dx:0, dy, stdDeviation:blur, 'flood-color':'#000000', 'flood-opacity':opacity}));
+    return f;
+  };
+  defs.appendChild(shadow('pieceShadow', 2.5, 2.2, 0.45));
+  // feDropShadow on the hub's own 4 pie-wedge paths (arcs, not simple
+  // shapes) rendered with visible dark triangular artifacts bleeding past
+  // the hub's true circular edge - filtering complex path geometry directly
+  // isn't reliable. Instead, blur a single plain circle drawn behind the
+  // hub - circles are simple enough to filter cleanly (this is the same
+  // approach the piece shadows above already use successfully).
+  const hubBlur = el('filter',{id:'hubBlur', x:'-60%', y:'-60%', width:'220%', height:'220%'});
+  hubBlur.appendChild(el('feGaussianBlur',{stdDeviation:3.5}));
+  defs.appendChild(hubBlur);
+  const radial = (id,cx,cy,r,stops)=>{
+    const g = el('radialGradient',{id,cx,cy,r});
+    stops.forEach(([offset,color,opacity])=>{
+      const attrs = {offset, 'stop-color':color};
+      if(opacity!==undefined) attrs['stop-opacity']=opacity;
+      g.appendChild(el('stop',attrs));
+    });
+    return g;
+  };
+  defs.appendChild(radial('whitePieceGrad','35%','30%','75%',[['0%','#fffaf0'],['55%','#f4ecd8'],['100%','#d9c9a0']]));
+  defs.appendChild(radial('blackPieceGrad','35%','30%','75%',[['0%','#3f3833'],['55%','#141110'],['100%','#040302']]));
+  defs.appendChild(radial('sheenGrad','32%','24%','80%',[['0%','#ffffff',0.16],['55%','#ffffff',0.03],['100%','#000000',0.14]]));
+  return defs;
+}
+function midPoint(cx,cy,r,a){ return {x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}; }
+
+// --- "flank" wedges: the handful of spaces closest to the hub on each loop,
+// eased from the loop's normal circular curve toward straighter (per
+// playtester feedback - the crossing should read more like a figure-8
+// racetrack than two circles touching). Only the FLANK_SPACES spaces
+// nearest the gap on each side are affected; everything else on the loop
+// stays a plain circular arc, exactly as before.
+const FLANK_SPACES = 3;
+const FLANK_HANDLE_FRAC = 0.3; // how far the ease reaches - tuned by eye, matched to the approved mockup
+
+function lerpPt(p,q,t){ return {x:p.x+(q.x-p.x)*t, y:p.y+(q.y-p.y)*t}; }
+// Standard De Casteljau subdivision: given a quadratic bezier (P0,C,P2) valid
+// for s in [0,1], returns the [P0,C,P2] of the same curve restricted to
+// s in [a,b] (0<=a<b<=1) - used to carve one smooth eased curve into the
+// individual space boundaries that make it up, without introducing any new
+// corners between them.
+function quadBezierSubsegment(P0,C,P2,a,b){
+  const A1=lerpPt(P0,C,a), B1=lerpPt(C,P2,a), M1=lerpPt(A1,B1,a);
+  const s = (b-a)/(1-a);
+  const A2=lerpPt(M1,B1,s), B2=lerpPt(B1,P2,s), M2=lerpPt(A2,B2,s);
+  return [M1, A2, M2];
+}
+// The eased boundary curve for one radius (inner or outer) of a flank zone.
+// angleLo/angleHi bound the whole flank (all FLANK_SPACES spaces together);
+// tangentAtLo says which end still meets the round part of the loop - the
+// curve leaves that end along the circle's own tangent direction (so there's
+// no corner there) and eases toward the free/gap end at the other side.
+function flankBezier(cx,cy,r,angleLo,angleHi,tangentAtLo){
+  const ptAt=(a)=>({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)});
+  const P0=ptAt(angleLo), P2=ptAt(angleHi);
+  const tangentAngle = tangentAtLo ? angleLo : angleHi;
+  const tangentPt = tangentAtLo ? P0 : P2;
+  const sign = tangentAtLo ? 1 : -1;
+  const k = r*FLANK_HANDLE_FRAC;
+  const C = {
+    x: tangentPt.x + k*(-Math.sin(tangentAngle)*sign),
+    y: tangentPt.y + k*( Math.cos(tangentAngle)*sign)
+  };
+  return {P0,C,P2};
+}
+function quadBezierPoint(P0,C,P2,t){
+  const mt=1-t;
+  return { x: mt*mt*P0.x + 2*mt*t*C.x + t*t*P2.x, y: mt*mt*P0.y + 2*mt*t*C.y + t*t*P2.y };
+}
+// A quadratic bezier doesn't move at a constant rate along its length, so
+// cutting one into n equal-t pieces gives noticeably uneven widths (this is
+// what made the first version of the flank spaces look uneven/distorted).
+// This samples the curve and finds the t-values that divide it into n
+// equal-LENGTH pieces instead, so the resulting spaces read as evenly
+// sized, matching the plain circular spaces right next to them.
+function equalArcLengthSplits(P0,C,P2,n){
+  const SAMPLES = 200;
+  const pts=[]; for(let i=0;i<=SAMPLES;i++) pts.push(quadBezierPoint(P0,C,P2,i/SAMPLES));
+  const cumLen=[0];
+  for(let i=1;i<=SAMPLES;i++){
+    const dx=pts[i].x-pts[i-1].x, dy=pts[i].y-pts[i-1].y;
+    cumLen.push(cumLen[i-1]+Math.sqrt(dx*dx+dy*dy));
+  }
+  const total=cumLen[SAMPLES];
+  const splits=[0];
+  for(let i=1;i<n;i++){
+    const target=total*i/n;
+    let lo=0, hi=SAMPLES;
+    while(lo<hi){ const mid=(lo+hi)>>1; if(cumLen[mid]<target) lo=mid+1; else hi=mid; }
+    const segLen=cumLen[lo]-cumLen[lo-1];
+    const frac=segLen>0 ? (target-cumLen[lo-1])/segLen : 0;
+    splits.push((lo-1+frac)/SAMPLES);
+  }
+  splits.push(1);
+  return splits;
+}
+// Builds all n wedge paths for one flank at once, sharing a single pair of
+// smooth curves (inner + outer) split at equal-arc-length points along the
+// outer curve - not n independently-built wedges, so there's no seam or
+// unevenness between them.
+function buildFlankWedgePaths(cx,cy,rIn,rOut,angleLo,angleHi,tangentAtLo,n){
+  const outer = flankBezier(cx,cy,rOut,angleLo,angleHi,tangentAtLo);
+  const inner = flankBezier(cx,cy,rIn,angleLo,angleHi,tangentAtLo);
+  const splits = equalArcLengthSplits(outer.P0,outer.C,outer.P2,n);
+  const paths=[];
+  for(let i=0;i<n;i++){
+    const sLo=splits[i], sHi=splits[i+1];
+    const [oP0,oC,oP2] = quadBezierSubsegment(outer.P0,outer.C,outer.P2,sLo,sHi);
+    const [iP0,iC,iP2] = quadBezierSubsegment(inner.P0,inner.C,inner.P2,sLo,sHi);
+    paths.push(`M ${oP0.x} ${oP0.y} Q ${oC.x} ${oC.y} ${oP2.x} ${oP2.y} `+
+               `L ${iP2.x} ${iP2.y} Q ${iC.x} ${iC.y} ${iP0.x} ${iP0.y} Z`);
+  }
+  return paths;
+}
+// Builds the full set of wedge paths for one loop: a plain circular arc for
+// the middle spaces, and the evenly-eased flank curve for the FLANK_SPACES
+// spaces nearest either end of the loop's gap.
+function buildLoopWedgePaths(cx,cy,rIn,rOut,loopStart){
+  const startFlank = buildFlankWedgePaths(cx,cy,rIn,rOut, loopStart, loopStart+FLANK_SPACES*STEP, false, FLANK_SPACES);
+  const endFlank = buildFlankWedgePaths(cx,cy,rIn,rOut, loopStart+(LOOP_LEN-FLANK_SPACES)*STEP, loopStart+LOOP_LEN*STEP, true, FLANK_SPACES);
+  const paths=[];
+  for(let i=0;i<LOOP_LEN;i++){
+    if(i < FLANK_SPACES) paths.push(startFlank[i]);
+    else if(i >= LOOP_LEN-FLANK_SPACES) paths.push(endFlank[i-(LOOP_LEN-FLANK_SPACES)]);
+    else paths.push(wedgePath(cx,cy,rIn,rOut, loopStart+i*STEP, loopStart+(i+1)*STEP));
+  }
+  return paths;
+}
+// One continuous outline of a whole loop's TRUE current shape - eased
+// flanks near the hub, plain circle for the rest - built from the exact
+// same curves as buildFlankWedgePaths/wedgePath. Used for the lighting
+// "sheen" overlay so it can never peek out past the real space boundaries
+// (a plain full-circle annulus doesn't fit anymore now the flanks are
+// eased inward - that's what caused the stray ghost-of-the-old-circle look).
+function loopSheenPath(cx,cy,rIn,rOut,loopStart){
+  const angleMidLo = loopStart+FLANK_SPACES*STEP, angleMidHi = loopStart+(LOOP_LEN-FLANK_SPACES)*STEP;
+  const gapLo = loopStart, gapHi = loopStart+LOOP_LEN*STEP;
+  const midLarge = (angleMidHi-angleMidLo) > Math.PI ? 1 : 0;
+  const ptAt=(r,a)=>({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)});
+  const outerStart = flankBezier(cx,cy,rOut,gapLo,angleMidLo,false);
+  const outerEnd   = flankBezier(cx,cy,rOut,angleMidHi,gapHi,true);
+  const innerStart = flankBezier(cx,cy,rIn, gapLo,angleMidLo,false);
+  const innerEnd   = flankBezier(cx,cy,rIn, angleMidHi,gapHi,true);
+  const oMid2 = ptAt(rOut,angleMidHi), iMid1 = ptAt(rIn,angleMidLo), iMid2 = ptAt(rIn,angleMidHi);
+  return `M ${outerStart.P0.x} ${outerStart.P0.y} `+
+         `Q ${outerStart.C.x} ${outerStart.C.y} ${outerStart.P2.x} ${outerStart.P2.y} `+
+         `A ${rOut} ${rOut} 0 ${midLarge} 1 ${oMid2.x} ${oMid2.y} `+
+         `Q ${outerEnd.C.x} ${outerEnd.C.y} ${outerEnd.P2.x} ${outerEnd.P2.y} `+
+         `L ${innerEnd.P2.x} ${innerEnd.P2.y} `+
+         `Q ${innerEnd.C.x} ${innerEnd.C.y} ${iMid2.x} ${iMid2.y} `+
+         `A ${rIn} ${rIn} 0 ${midLarge} 0 ${iMid1.x} ${iMid1.y} `+
+         `Q ${innerStart.C.x} ${innerStart.C.y} ${innerStart.P0.x} ${innerStart.P0.y} Z`;
+}
+
+// master track: 0-15 left loop, 16-19 hub, 20-35 right loop
+const MASTER = [];
+// The hub's footprint covers roughly 54 degrees of each loop's circle (verified by
+// checking exactly where the loop's boundary clears the hub's radius, with a safety
+// margin). That arc is treated as not belonging to the loop at all - the 16 real
+// spaces are sized to fit the remaining ~306 degrees, not the full 360.
+const GAP_HALF_ANGLE = 23 * Math.PI/180; // tight enough that the hub slightly overlaps the outer tip of the adjacent space (no visible gap), since the hub is drawn on top anyway
+const VISIBLE_SPAN = (2*Math.PI) - 2*GAP_HALF_ANGLE;
+const STEP = VISIBLE_SPAN/LOOP_LEN;
+
+const leftStart = GAP_HALF_ANGLE; // just past the hub's south edge, from the left loop's own center
+const leftPaths = buildLoopWedgePaths(Lx,Ly,LOOP_R_IN,LOOP_R_OUT,leftStart);
+for(let i=0;i<LOOP_LEN;i++){
+  const a0=leftStart+i*STEP, a1=leftStart+(i+1)*STEP;
+  const mid = midPoint(Lx,Ly,(LOOP_R_IN+LOOP_R_OUT)/2,(a0+a1)/2);
+  MASTER.push({idx:i, x:mid.x, y:mid.y, zone:'left', shade:i%2===0?'light':'dark', path:leftPaths[i]});
+}
+const hubQuadrants = [
+  {idx:16, a0:Math.PI, a1:Math.PI*1.5, half:'light', isStart:'black'},   // NW
+  {idx:17, a0:Math.PI*1.5, a1:Math.PI*2, half:'light', isStart:null},    // NE
+  {idx:18, a0:0, a1:Math.PI*0.5, half:'dark', isStart:'white'},          // SE
+  {idx:19, a0:Math.PI*0.5, a1:Math.PI, half:'dark', isStart:null},       // SW
+];
+hubQuadrants.forEach(q=>{
+  const mid = midPoint(Hx,Hy,(HUB_R_IN+HUB_R_OUT)/2,(q.a0+q.a1)/2);
+  MASTER.push({idx:q.idx, x:mid.x, y:mid.y, zone:'hub', half:q.half, isStart:q.isStart,
+    path: wedgePath(Hx,Hy,HUB_R_IN,HUB_R_OUT,q.a0,q.a1)});
+});
+const rightStart = Math.PI+GAP_HALF_ANGLE; // just past the hub's north edge, from the right loop's own center
+const rightPaths = buildLoopWedgePaths(Rx,Ry,LOOP_R_IN,LOOP_R_OUT,rightStart);
+for(let i=0;i<LOOP_LEN;i++){
+  const a0=rightStart+i*STEP, a1=rightStart+(i+1)*STEP;
+  const mid = midPoint(Rx,Ry,(LOOP_R_IN+LOOP_R_OUT)/2,(a0+a1)/2);
+  MASTER.push({idx:20+i, x:mid.x, y:mid.y, zone:'right', shade:i%2===0?'dark':'light', path:rightPaths[i]});
+}
+const INFINITE_PT = {x:Hx, y:Hy};
+
+// Board orientation: the whole figure-8 has exact 180-degree rotational
+// symmetry around the hub center, so "turn the board around to face the
+// other player" is just: draw each space's own color/label/pieces at the
+// SCREEN POSITION of its rotational counterpart, rather than its own natural
+// position. Left-loop space i's counterpart is right-loop space 20+i (they're
+// the same angular slot, just on opposite loops), and the hub quadrants swap
+// diagonally (16<->18, 17<->19). This is a pure repositioning - each space
+// keeps its own true identity, color, and game logic; only where it's drawn
+// changes.
+const FLIP_MAP = (()=>{
+  const map = {};
+  for(let i=0;i<16;i++){ map[i]=20+i; map[20+i]=i; }
+  map[16]=18; map[18]=16; map[17]=19; map[19]=17;
+  return map;
+})();
+let manualBoardFlip = false; // pass-and-play only: a physical device would get turned around for the other player - this is the software equivalent
+function isBoardFlipped(){
+  // vs computer: spaces 18/19 (Black's seat) are already at the bottom by
+  // default, so only playing as White (sitting at the 16/17 seat) needs a
+  // flip. Pass-and-play: no fixed human color, so it's a manual toggle instead.
+  if(botColor) return botColor==='black'; // botColor is the COMPUTER's color, so botColor==='black' means the human is playing White
+  return manualBoardFlip;
+}
+function visualMaster(idx){
+  return isBoardFlipped() ? MASTER[FLIP_MAP[idx]] : MASTER[idx];
+}
+
+// Display-only label - the raw 0-35 index above is what the game logic
+// actually uses (pathToMaster, occupantsAtMaster, etc.) and stays untouched.
+// This just gives the player a more readable name: which zone a space is in
+// (loop A / hub C / loop B) plus its position within that zone. Uses A/B/C
+// rather than Left/Right since the board can be flipped - "left loop" would
+// stop meaning left once the view turns around.
+function displayLabel(idx){
+  if(idx>=0 && idx<=15) return 'A'+(16-idx);
+  if(idx>=16 && idx<=19) return 'C'+(idx-15);
+  if(idx>=20 && idx<=35) return 'B'+(36-idx);
+  return String(idx);
+}
+
+
+
+// The confirmed path: Black's one full circuit, in order. The hub isn't a simple ring —
+// it's the figure-8's true crossing point, so 16 connects to 18 and 17 connects to 19
+// (diagonal threads), not to their visually-adjacent quadrant neighbors.
+const PATH_ORDER = [16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0,19,17,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,18];
+const START_MASTER = {white:18, black:16};
+function pathToMaster(color, progress){
+  const p = ((progress % TRACK_LEN)+TRACK_LEN)%TRACK_LEN;
+  if(color==='black') return PATH_ORDER[p];
+  return PATH_ORDER[((TRACK_LEN-1-p)%TRACK_LEN+TRACK_LEN)%TRACK_LEN];
+}
+
+// ---------- sound ----------
+// Real recorded sound effects (dice/move/capture from JDSherbert's Tabletop
+// Games SFX Pack; win from Kenney.nl Interface Sounds - both royalty-free,
+// see sounds/CREDITS.txt) instead of synthesized oscillator tones. Played
+// through the Web Audio API (not plain <audio>) so we can apply a modest
+// gain above 1.0 with a limiter as a safety net against clipping - these
+// clips are already mastered close to 0dBFS, so there's very little clean
+// headroom to work with.
+const SOUND_CLIPS = {
+  dice: 'sounds/dice.m4a',
+  move: 'sounds/move.ogg',
+  capture: 'sounds/capture.ogg',
+  win: 'sounds/win.ogg',
+};
+let sfxCtx = null;
+const sfxBuffers = {};
+function getSfxCtx(){
+  if(!sfxCtx){
+    try{ sfxCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+    catch(e){ return null; }
+  }
+  return sfxCtx;
+}
+function loadSfxBuffer(name){
+  const ctx = getSfxCtx();
+  if(!ctx) return Promise.resolve(null);
+  if(sfxBuffers[name]) return sfxBuffers[name];
+  const p = fetch(SOUND_CLIPS[name])
+    .then(r=>r.arrayBuffer())
+    .then(data=>ctx.decodeAudioData(data))
+    .catch(()=>null);
+  sfxBuffers[name] = p;
+  return p;
+}
+Object.keys(SOUND_CLIPS).forEach(loadSfxBuffer); // warm the cache up front
+// These clips are already mastered near 0dBFS peak (they're short percussive
+// foley hits), so there's very little clean headroom - a couple dB at most.
+// A shared limiter (fast attack, short release) sits after every gain stage
+// so each sound's gain can be pushed right up to that headroom without the
+// occasional hot sample turning into audible clipping/distortion.
+let sfxLimiter = null;
+function getSfxLimiter(){
+  const ctx = getSfxCtx();
+  if(!ctx) return null;
+  if(!sfxLimiter){
+    sfxLimiter = ctx.createDynamicsCompressor();
+    sfxLimiter.threshold.value = -1.5;
+    sfxLimiter.knee.value = 6;
+    sfxLimiter.ratio.value = 12;
+    sfxLimiter.attack.value = 0.002;
+    sfxLimiter.release.value = 0.08;
+    sfxLimiter.connect(ctx.destination);
+  }
+  return sfxLimiter;
+}
+function playClip(name, gainValue){
+  if(!soundEnabled) return;
+  // The MCTS bot reuses performMove/placePiece to explore hundreds of
+  // hypothetical moves per turn on a cloned state (simulatingBot suppresses
+  // render() for the same reason) - without this guard every one of those
+  // imaginary moves fired a real sound too, all overlapping within
+  // milliseconds of each other during the bot's "thinking" and reading as
+  // harsh/distorted noise.
+  if(simulatingBot) return;
+  const ctx = getSfxCtx();
+  if(!ctx) return;
+  if(ctx.state==='suspended') ctx.resume();
+  loadSfxBuffer(name).then(buffer=>{
+    if(!buffer || !soundEnabled) return;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = gainValue==null ? 1 : gainValue;
+    src.connect(gain); gain.connect(getSfxLimiter());
+    src.start();
+  });
+}
+function playDiceSound(){ playClip('dice', 1.2); }
+
+// ---------- state ----------
+function freshPieces(){
+  const obj={};
+  const raceOrder = PIECE_DEFS.filter(d=>d.category==='race' && !d.isExtra);
+  PIECE_DEFS.forEach(d=>{
+    if(d.isExtra){
+      // Homecoming's second copy: unavailable until its base piece completes
+      // a full circuit (see triggerHomecoming).
+      obj[d.id] = {status:'locked', progress:0, completedCircuit:false};
+    } else if(d.category==='race'){
+      // Race pieces start already on the board, one step past their own
+      // Placement space (so Placement itself starts empty, not sitting under
+      // a Race piece) - no placement needed for these.
+      obj[d.id] = {status:'onboard', progress:raceOrder.indexOf(d)+1, completedCircuit:false};
+    } else {
+      obj[d.id] = {status:'bench', progress:0, completedCircuit:false};
+    }
+  });
+  return obj;
+}
+let state;
+let botColor = null; // null = two humans; 'white' or 'black' = that color is computer-controlled
+let botBusy = false;
+function resetState(){
+  state = {
+    round:1,
+    firstMover:'white',
+    dice:null, // {d1,d2, options:[...]}
+    rolled:false,
+    acted:{white:false, black:false},
+    selected:null, // {color, pieceId}
+    bodyCaptured:{white:false, black:false},
+    roundsWithNoBodyCaptured:0,
+    winner:null,
+    winReason:'',
+    isDraw:false,
+    log:[],
+    homecomingGranted:{white:{creature:false,dwarf:false,man:false,elf:false}, black:{creature:false,dwarf:false,man:false,elf:false}},
+    pieces:{ white:freshPieces(), black:freshPieces() }
+  };
+}
+resetState();
+
+function currentMover(){
+  const order = state.firstMover==='white' ? ['white','black'] : ['black','white'];
+  if(!state.acted[order[0]]) return order[0];
+  if(!state.acted[order[1]]) return order[1];
+  return null; // round complete
+}
+
+// Per the rules, the round's FIRST mover doesn't roll - the SECOND mover does
+// (rolling once, before either player has acted, and both then use that same
+// roll). This is a distinct question from "whose turn is it to act right
+// now" (currentMover), which is why it's its own function.
+function roundRoller(){
+  return state.firstMover==='white' ? 'black' : 'white';
+}
+
+function log(msg){
+  state.log.unshift(msg);
+  if(state.log.length>60) state.log.pop();
+}
+
+// ---------- move/capture/win sound effects ----------
+let soundEnabled = true;
+try{ soundEnabled = localStorage.getItem('nefesh-sound-enabled') !== 'off'; } catch(e){ /* private browsing */ }
+function playMoveSound(){ playClip('move', 1.2); }
+function playCaptureSound(){ playClip('capture', 1.25); }
+function playWinSound(){ playClip('win', 1.3); }
+function setSoundEnabled(on){
+  soundEnabled = on;
+  try{ localStorage.setItem('nefesh-sound-enabled', on ? 'on' : 'off'); } catch(e){ /* private browsing - not critical */ }
+  updateSoundToggleBtn();
+}
+function updateSoundToggleBtn(){
+  const btn = document.getElementById('sound-toggle-btn');
+  if(!btn) return;
+  btn.textContent = soundEnabled ? 'On' : 'Off';
+}
+
+// ---------- board occupancy ----------
+function occupantsAtMaster(masterIdx){
+  const res=[];
+  for(const color of ['white','black']){
+    for(const d of PIECE_DEFS){
+      const p = state.pieces[color][d.id];
+      if(p.status==='onboard'){
+        const m = pathToMaster(color,p.progress);
+        if(m===masterIdx) res.push({color, pieceId:d.id});
+      }
+    }
+  }
+  return res;
+}
+
+// A Soul can't be captured - by either player, including its own owner
+// landing another piece on it by accident - until that Soul's own Body has
+// been captured. Without this, a stray self-capture could end the game via
+// Soul loss before Body's fate was ever decided, which defeats the point of
+// the Body-gate.
+function soulCaptureBlocked(occ){
+  return occ.some(o=>o.pieceId==='soul' && !state.bodyCaptured[o.color]);
+}
+
+// ---------- legal move computation ----------
+function diceBaseOptions(){
+  if(!state.dice) return [];
+  const {d1,d2} = state.dice;
+  return [d1+d2]; // only the sum of both dice is usable as a move length
+}
+
+// Will/Mind: bonuses aren't automatic. Until a color's Will is placed and
+// alive on the board, ALL of that color's pieces move by dice sum only (no
+// bonus). Once Will is placed and alive, bonuses apply automatically - UNLESS
+// Mind is also placed and alive, in which case the player chooses 0..bonus
+// per move instead. Both are tied to "alive right now" (status==='onboard')
+// - captures are permanent in this game (no revival), so losing Will after
+// it's been placed shuts bonuses off for the rest of the game.
+function willIsActive(color){ return state.pieces[color].will.status==='onboard'; }
+function mindIsActive(color){ return state.pieces[color].mind.status==='onboard'; }
+function effectiveBonus(color, def){
+  if(!willIsActive(color)) return 0;
+  return def.bonus;
+}
+
+function getLegalMoves(color, pieceId){
+  if(state.winner) return [];
+  const def = getDef(pieceId);
+  const p = state.pieces[color][pieceId];
+  if(p.status!=='onboard' || !state.dice) return [];
+  const bases = diceBaseOptions();
+  const bonus = effectiveBonus(color, def);
+  const deltaMagnitudes = new Set();
+  if(mindIsActive(color)){
+    bases.forEach(b=>{ for(let bn=0; bn<=bonus; bn++){ deltaMagnitudes.add(b+bn); } }); // Mind: choose how much of the bonus to use
+  } else {
+    bases.forEach(b=>{ deltaMagnitudes.add(b+bonus); }); // bonus is a flat add, always fully applied
+  }
+  const deltas = new Set();
+  deltaMagnitudes.forEach(v=>{
+    deltas.add(v);
+    if(def.category==='person') deltas.add(-v);
+  });
+
+  const legal=[];
+
+  deltas.forEach(delta=>{
+    const newProgress = p.progress + delta;
+
+    if(def.id!=='soul'){
+      if(delta<0 && newProgress<0) return; // can't pass own start backward
+      if(newProgress>=TRACK_LEN){
+        // Completing a full circuit no longer captures the piece - it wraps
+        // around and keeps going, same as the Soul already does.
+        const wrapped = newProgress % TRACK_LEN;
+        const masterIdx = pathToMaster(color, wrapped);
+        const occ = occupantsAtMaster(masterIdx);
+        if(soulCaptureBlocked(occ)) return;
+        // completesLap: this move crosses/lands on the end of a full circuit -
+        // used by Homecoming to grant a Race piece's second copy.
+        legal.push({delta, newProgress: wrapped, kind:'normal', masterIdx, occ, completesLap:true});
+        return;
+      }
+      const masterIdx = pathToMaster(color, newProgress);
+      const occ = occupantsAtMaster(masterIdx);
+      if(soulCaptureBlocked(occ)) return;
+      legal.push({delta, newProgress, kind:'normal', masterIdx, occ});
+      return;
+    }
+
+    // SOUL - no separate "endgame zone": the Soul moves like an ordinary Person piece
+    // the whole time, with full normal capture rules everywhere, except for two
+    // special cases: landing on the last TWO steps of its circuit (36, or the one
+    // space before it) substitutes as entering the Infinite once its own Body is
+    // captured; and once it has completed a first full circuit, moving back past
+    // its own actual starting point (progress going below 0) gets it captured
+    // instead of blocked.
+    if(!p.completedCircuit && delta<0 && newProgress<0) return; // bounded like a normal Person piece until its first circuit is complete
+
+    // Until its own Body is captured, the Soul can't pass the Infinite
+    // threshold at all - it can approach right up to it, just not go past,
+    // so it can't shuttle back and forth near the end before it's unlocked.
+    if(!state.bodyCaptured[color] && newProgress>TRACK_LEN) return;
+
+    if(newProgress>=TRACK_LEN-1 && newProgress<=TRACK_LEN && state.bodyCaptured[color]){
+      legal.push({delta, newProgress, kind:'soul-win', masterIdx: pathToMaster(color, newProgress)});
+      return;
+    }
+    if(p.completedCircuit && newProgress < 0){
+      legal.push({delta, newProgress, kind:'soul-overshoot-capture', masterIdx: pathToMaster(color, newProgress)});
+      return;
+    }
+    {
+      const masterIdx = pathToMaster(color, newProgress);
+      const occ = occupantsAtMaster(masterIdx);
+      if(soulCaptureBlocked(occ)) return;
+      legal.push({delta, newProgress, kind:'normal', masterIdx, occ});
+    }
+  });
+
+  return legal;
+}
+
+function canPlaceAnyBenchPiece(color){
+  const hasBench = PIECE_DEFS.some(d=> state.pieces[color][d.id].status==='bench');
+  if(!hasBench) return false;
+  // Every bench piece of this color shares the same destination (its own
+  // Placement space), so one occupancy check covers all of them.
+  return !soulCaptureBlocked(occupantsAtMaster(START_MASTER[color]));
+}
+
+function hasAnyLegalAction(color){
+  if(canPlaceAnyBenchPiece(color)) return true;
+  return PIECE_DEFS.some(d=>{
+    const p = state.pieces[color][d.id];
+    return p.status==='onboard' && getLegalMoves(color,d.id).length>0;
+  });
+}
+
+// Same idea as a stalemate in chess: extremely rare in practice (well under
+// 1% of games, per simulation), but when the player to move genuinely has no
+// legal placement or move, the game ends immediately as a draw rather than
+// just passing the turn along.
+function declareStalemateDraw(color){
+  state.winner = 'draw';
+  state.isDraw = true;
+  state.winReason = `${color==='white'?'White':'Black'} had no legal placement or move - the game is a draw, as in a stalemate.`;
+  log(`${color==='white'?'White':'Black'} has no legal action - the game is a draw.`);
+  render();
+}
+
+// ---------- actions ----------
+function placePiece(color, pieceId){
+  const mover = currentMover();
+  if(mover!==color || state.winner) return;
+  const p = state.pieces[color][pieceId];
+  if(p.status!=='bench') return;
+  const startMaster = START_MASTER[color];
+  const occ = occupantsAtMaster(startMaster);
+  if(soulCaptureBlocked(occ)) return;
+  occ.forEach(o=>{
+    state.pieces[o.color][o.pieceId].status='captured';
+    if(o.pieceId==='body'){ state.bodyCaptured[o.color]=true; }
+    if(o.color===color){
+      log(`${color} self-captures its own ${getDef(o.pieceId).label} while placing on Placement.`);
+    } else {
+      log(`${color==='white'?'White':'Black'}'s ${getDef(pieceId).label} captures ${o.color}'s ${getDef(o.pieceId).label} while placing.`);
+    }
+    if(o.pieceId==='soul'){
+      const winner = o.color==='white' ? 'black' : 'white';
+      state.winner = winner;
+      state.winReason = o.color===color
+        ? `${color} self-captured its own Soul while placing a piece - ${winner} wins.`
+        : `${color==='white'?'White':'Black'} captured the opposing Soul while placing a piece.`;
+    }
+  });
+  p.status='onboard';
+  p.progress=0;
+  log(`${color==='white'?'White':'Black'} places ${getDef(pieceId).label} on Placement.`);
+  if(state.winner) playWinSound();
+  else if(occ.length>0) playCaptureSound();
+  else playMoveSound();
+  finishAction(color);
+}
+
+// Homecoming: the first time a Race piece of a given type completes a full
+// circuit, its owner's second copy of that type moves from 'locked' to
+// 'bench', ready to be placed like any other bench piece. Capped at one
+// extra per type, permanently - if the extra is later captured, looping
+// again with the survivor grants nothing further.
+function triggerHomecoming(color, baseId){
+  if(state.homecomingGranted[color][baseId]) return; // cap already reached
+  state.homecomingGranted[color][baseId] = true;
+  const extraId = baseId+'2';
+  state.pieces[color][extraId].status = 'bench';
+  log(`${color==='white'?'White':'Black'}'s ${getDef(baseId).label} completes a full circuit - a second ${getDef(baseId).label} joins the bench.`);
+}
+
+function performMove(color, pieceId, move){
+  const p = state.pieces[color][pieceId];
+  const def = getDef(pieceId);
+
+  if(move.kind==='soul-win'){
+    p.progress = move.newProgress;
+    state.winner = color;
+    state.winReason = `${color==='white'?'White':'Black'}'s Soul entered the Infinite.`;
+    playWinSound();
+  } else if(move.kind==='soul-overshoot-capture'){
+    p.status='captured';
+    const winner = color==='white' ? 'black' : 'white';
+    state.winner = winner;
+    state.winReason = `${def.label} (${color})'s Soul circled all the way back past its start and was lost - ${winner} wins.`;
+    playWinSound();
+  } else if(move.kind==='normal'){
+    p.progress = move.newProgress;
+    if(pieceId==='soul' && move.newProgress>=TRACK_LEN){
+      p.completedCircuit = true; // permanent, one-time - never unset once achieved
+    }
+    if(move.completesLap && def.category==='race'){
+      triggerHomecoming(color, def.baseId || def.id);
+    }
+    const oppColor = color==='white'?'black':'white';
+    move.occ.forEach(o=>{
+      state.pieces[o.color][o.pieceId].status='captured';
+      if(o.pieceId==='body'){ state.bodyCaptured[o.color]=true; }
+      if(o.color===color){
+        log(`${color} self-captures its own ${getDef(o.pieceId).label}.`);
+      } else {
+        log(`${color==='white'?'White':'Black'}'s ${def.label} captures ${o.color}'s ${getDef(o.pieceId).label}.`);
+      }
+      if(o.pieceId==='soul'){
+        // Losing your Soul ends the game no matter how it happened - the
+        // player who OWNED that soul loses, whether it was the opponent's
+        // capture or a self-capture.
+        const winner = o.color==='white' ? 'black' : 'white';
+        state.winner = winner;
+        state.winReason = o.color===color
+          ? `${color} self-captured its own Soul - ${winner} wins.`
+          : `${color==='white'?'White':'Black'} captured the opposing Soul.`;
+      }
+    });
+    if(state.winner) playWinSound();
+    else if(move.occ.length>0) playCaptureSound();
+    else playMoveSound();
+  }
+  finishAction(color);
+}
+
+const STALEMATE_ROUNDS_NO_BODY = 80; // rounds with neither Body captured before it's called a draw
+
+function finishAction(color){
+  state.acted[color]=true;
+  state.selected=null;
+  render();
+  if(state.winner){ return; }
+  if(currentMover()===null){
+    // round complete -> new round
+    if(!state.bodyCaptured.white && !state.bodyCaptured.black){
+      state.roundsWithNoBodyCaptured++;
+      if(state.roundsWithNoBodyCaptured >= STALEMATE_ROUNDS_NO_BODY){
+        state.winner = 'draw';
+        state.isDraw = true;
+        state.winReason = `${STALEMATE_ROUNDS_NO_BODY} rounds have passed with neither player's Body captured - the game is a draw.`;
+        render();
+        return;
+      }
+    } else {
+      state.roundsWithNoBodyCaptured = 0;
+    }
+    state.round += 1;
+    state.firstMover = state.firstMover==='white' ? 'black' : 'white';
+    state.acted = {white:false, black:false};
+    state.dice=null;
+    render();
+  }
+}
+
+// ---------- computer opponent ----------
+// Two fully independent knobs, both validated in nefesh-sim.js: PLAY STYLE
+// (which goals it weighs - the persona) and DIFFICULTY (how well it pursues
+// that style - how far ahead it searches). Any style can be paired with any
+// difficulty. Character identities/lore for the personas can be layered on
+// later - these are functional placeholders.
+const PIECE_VALUE = { soul: 100000, body: 80, mind: 20, will: 25, elf: 30, man: 22, dwarf: 16, creature: 10,
+  elf2: 30, man2: 22, dwarf2: 16, creature2: 10 }; // Homecoming's extra copies are worth the same as their base
+
+// raceWeight/personWeight: how much to prefer advancing/placing pieces of that
+// category over the other. bodyHunt: extra multiplier specifically on
+// capturing the opponent's Body. ownBodyGuard: extra multiplier specifically
+// penalizing self-capturing its OWN Body. selfSacrifice: deliberately
+// self-captures its own Body once its Soul is out and moving, to unlock its
+// own Infinite run early.
+const DEFAULT_AXES = {raceWeight:1.0, personWeight:1.0, bodyHunt:1.0, ownBodyGuard:1.0, selfSacrifice:false};
+const SCORE_PROFILES = {
+  balanced:   {...DEFAULT_AXES, capture:1.0, selfCapture:1.0, progress:1.0, soulUrgency:1.0},
+  aggressive: {...DEFAULT_AXES, capture:1.6, selfCapture:0.5, progress:0.8, soulUrgency:0.8},
+  defensive:  {...DEFAULT_AXES, capture:0.7, selfCapture:2.2, progress:0.9, soulUrgency:1.0},
+  racer:      {...DEFAULT_AXES, capture:0.5, selfCapture:1.0, progress:1.6, soulUrgency:2.5},
+  vanguard:   {...DEFAULT_AXES, capture:1.0, selfCapture:1.0, progress:1.0, soulUrgency:1.0, raceWeight:1.8, personWeight:0.4},
+  herald:     {...DEFAULT_AXES, capture:1.0, selfCapture:1.0, progress:1.0, soulUrgency:1.0, raceWeight:0.4, personWeight:1.8},
+  assassin:   {...DEFAULT_AXES, capture:1.0, selfCapture:1.0, progress:1.0, soulUrgency:1.0, bodyHunt:2.5},
+  guardian:   {...DEFAULT_AXES, capture:1.0, selfCapture:1.0, progress:1.0, soulUrgency:1.0, ownBodyGuard:3.0},
+  zealot:     {...DEFAULT_AXES, capture:1.0, selfCapture:1.0, progress:1.0, soulUrgency:1.2, selfSacrifice:true},
+  turtle:     {...DEFAULT_AXES, capture:0.3, selfCapture:3.0, progress:0.3, soulUrgency:0.3},
+};
+
+const PERSONAS = [
+  {id:'balanced',   name:'Ranger',     blurb:'A steady, all-around player.'},
+  {id:'aggressive', name:'Gunslinger', blurb:'Chases every capture it can find, and takes risks doing it.'},
+  {id:'defensive',  name:'Watchman',   blurb:'Cautious — reluctant to expose any of its pieces.'},
+  {id:'racer',      name:'Pilgrim',    blurb:'Undervalues captures — rushes its Soul toward the Infinite.'},
+  {id:'vanguard',   name:'Vanguard',   blurb:'Pushes its Race pieces (Creature/Dwarf/Man/Elf) hard, slow to bring its Person pieces out.'},
+  {id:'herald',     name:'Herald',     blurb:'Rushes its Person pieces (Mind/Will/Body/Soul) out fast, neglects its Race pieces.'},
+  {id:'assassin',   name:'Assassin',   blurb:'Fixates on reaching your Body specifically, more than any other capture.'},
+  {id:'guardian',   name:'Guardian',   blurb:'Goes far out of its way to keep its own Body safe.'},
+  {id:'zealot',     name:'Zealot',     blurb:'Sacrifices its own Body on purpose once its Soul is moving, to free its own path to the Infinite early.'},
+  {id:'turtle',     name:'Turtle',     blurb:"Avoids nearly all risk - takes a clear win when it sees one, but won't chase a risky capture."},
+];
+// All three tiers now run the same MCTS search - difficulty is purely how
+// many simulations it runs per move before committing (see mctsChooseAction
+// above). Iteration counts tuned for a live opponent: strong enough to be a
+// real search, capped so a move never takes more than roughly a second.
+const DIFFICULTIES = [
+  {id:'easy',   name:'Easy',   iterations:15,  blurb:'A light search each turn - beatable, but no longer just guessing.'},
+  {id:'normal', name:'Normal', iterations:60,  blurb:'A real search each turn - a solid, well-rounded challenge.'},
+  {id:'hard',   name:'Hard',   iterations:180, blurb:'A deep search each turn - the toughest challenge.'},
+];
+let botPersona = PERSONAS.find(p=>p.id==='balanced');
+let botDifficulty = DIFFICULTIES.find(d=>d.id==='normal');
+
+// BOT_PROFILE[botColor] is the chosen persona's style; the human's color is
+// always scored as 'balanced' when the bot predicts their reply during
+// lookahead - a neutral guess, not an assumption about how you'll actually play.
+let BOT_PROFILE = {white:'balanced', black:'balanced'};
+function syncBotProfile(){
+  if(!botColor){ BOT_PROFILE = {white:'balanced', black:'balanced'}; return; }
+  const humanColor = botColor==='white' ? 'black' : 'white';
+  BOT_PROFILE = {[botColor]: botPersona.id, [humanColor]: 'balanced'};
+}
+
+function scoreOption(color, opt){
+  let score = Math.random()*3;
+  const profile = SCORE_PROFILES[BOT_PROFILE[color]] || SCORE_PROFILES.balanced;
+
+  if(opt.type==='place'){
+    // Placement used to always be a Person piece (Race pieces start onboard
+    // already) - now a Homecoming extra can be on the bench too, so use that
+    // piece's own category, not an assumption.
+    const placedDef = getDef(opt.pieceId);
+    const placeCategoryWeight = placedDef.category==='race' ? profile.raceWeight : profile.personWeight;
+    const startMaster = START_MASTER[color];
+    const occ = occupantsAtMaster(startMaster).filter(o=>o.color===color);
+    const hitsOwnSoul = occ.some(o=>o.pieceId==='soul');
+    const hitsOwnOther = occ.some(o=>o.pieceId!=='soul');
+    if(hitsOwnSoul) score -= 100000; // never place on top of your own unmoved Soul
+    else if(hitsOwnOther) score -= 15; // wastes a piece, mildly bad
+    else score += 6 * placeCategoryWeight; // otherwise, getting pieces onto the board is good
+    return score;
+  }
+
+  const move = opt.move;
+  const pieceId = opt.pieceId;
+  const def = getDef(pieceId);
+  const p = state.pieces[color][pieceId];
+  const categoryWeight = def.category==='race' ? profile.raceWeight : profile.personWeight;
+
+  if(move.kind==='soul-win') return score + 1000000; // immediate win
+  if(move.kind==='soul-overshoot-capture') return score - 200000; // self-destructs own Soul
+
+  // kind === 'normal'
+  score += Math.abs(move.delta) * 0.5 * profile.progress * categoryWeight; // preference for making real progress, biased by category
+  move.occ.forEach(o=>{
+    if(o.color===color){
+      if(o.pieceId==='soul') score -= 200000; // own-Soul safety is never a style choice
+      else if(o.pieceId==='body' && profile.selfSacrifice && isSoulOutAndMoving(color)) score += 45; // deliberately unlock our own Soul's path to the Infinite
+      else if(o.pieceId==='body') score -= 15 * profile.selfCapture * profile.ownBodyGuard; // extra-cautious about its own Body specifically
+      else if(o.pieceId==='will') score -= 300; // losing Will is permanent and shuts off every piece's bonus for good - not a style choice
+      else score -= 15 * profile.selfCapture;
+    } else if(o.pieceId==='soul'){
+      score += 100000; // capturing the enemy Soul always wins - never a style choice
+    } else if(o.pieceId==='body'){
+      score += 70 * profile.capture * profile.bodyHunt; // extra fixation on the opponent's Body specifically
+    } else if(o.pieceId==='will'){
+      score += 150 * profile.capture; // crippling the opponent's whole bonus economy is close to Body-tier value
+    } else {
+      score += (PIECE_VALUE[o.pieceId]||20) * profile.capture;
+    }
+  });
+  if(pieceId==='soul' && p.progress===0) score += 500 * profile.soulUrgency; // urgency: get the Soul moving
+  // Homecoming: a Race piece about to complete its circuit earns a second
+  // copy - worth actively chasing while that type hasn't earned it yet.
+  if(move.completesLap && def.category==='race'){
+    const baseId = def.baseId || def.id;
+    if(!state.homecomingGranted[color][baseId]) score += 60 * categoryWeight;
+  }
+  return score;
+}
+function isSoulOutAndMoving(color){
+  const soul = state.pieces[color].soul;
+  return soul.status==='onboard' && soul.progress >= 8 && !state.bodyCaptured[color];
+}
+
+function collectBotOptions(color){
+  const options = [];
+  if(canPlaceAnyBenchPiece(color)){
+    PIECE_DEFS.forEach(d=>{
+      const p = state.pieces[color][d.id];
+      if(p.status==='bench') options.push({type:'place', pieceId:d.id});
+    });
+  }
+  PIECE_DEFS.forEach(d=>{
+    const p = state.pieces[color][d.id];
+    if(p.status==='onboard'){
+      getLegalMoves(color, d.id).forEach(m=>options.push({type:'move', pieceId:d.id, move:m}));
+    }
+  });
+  return options;
+}
+function bestScored(color, options){
+  if(options.length===0) return null;
+  const scored = options.map(o=>({o, sc: scoreOption(color, o)}));
+  scored.sort((a,b)=>b.sc-a.sc);
+  return scored[0].o;
+}
+function applyBotChoice(color, choice){
+  if(choice.type==='place') placePiece(color, choice.pieceId);
+  else performMove(color, choice.pieceId, choice.move);
+}
+
+// Runs entirely on a cloned state - render() is disabled meanwhile (see
+// simulatingBot above) so the real board never flickers through
+// hypothetical positions while the bot "thinks."
+function cloneGameState(s){
+  const cloneOne = obj=>{ const out={}; for(const id in obj) out[id]={...obj[id]}; return out; };
+  return {
+    round:s.round, firstMover:s.firstMover, dice:s.dice?{...s.dice}:null,
+    acted:{...s.acted}, selected:null, bodyCaptured:{...s.bodyCaptured},
+    homecomingGranted:{white:{...s.homecomingGranted.white}, black:{...s.homecomingGranted.black}},
+    roundsWithNoBodyCaptured:s.roundsWithNoBodyCaptured, winner:s.winner,
+    winReason:s.winReason, isDraw:s.isDraw, log:[],
+    pieces:{ white:cloneOne(s.pieces.white), black:cloneOne(s.pieces.black) },
+  };
+}
+
+// ---------- MCTS computer opponent ----------
+// Same engine validated in nefesh-mcts.js's offline rule-search work,
+// ported to run directly against this file's own game functions (instead
+// of a separate pure-state module) so it can drive live in-game moves.
+// Two node types: decision nodes (state.dice set, UCT selection) and
+// chance nodes (state.dice null, a dice roll happens - expanded by
+// sampling an outcome rather than choosing one).
+const MCTS_EXPLORATION_C = Math.SQRT2;
+const MCTS_MAX_ROLLOUT_PLIES = 200;
+// How strongly rollouts favor each color's own scoreOption ranking over
+// picking uniformly at random - this is what lets personas "flavor" MCTS
+// play. Ranger (the balanced profile) has every SCORE_PROFILES weight at
+// 1.0, so it ends up the de facto neutral option without needing special
+// casing here - it's biased by the same scoring everyone else uses, just
+// with no style skew applied on top of it.
+const MCTS_ROLLOUT_BIAS = 0.65;
+
+function mctsActionKey(a){
+  return a.type==='place' ? `place:${a.pieceId}` : `move:${a.pieceId}:${a.move.delta}:${a.move.kind}`;
+}
+// currentMover()/collectBotOptions() read the module-global `state` rather
+// than taking one as a parameter - these wrappers give MCTS a pure-looking
+// interface by pointing `state` at an arbitrary snapshot just long enough
+// to ask the question, then restoring it (same trick pickLookahead already
+// used above, just factored out since MCTS needs it many times per move).
+function mctsCurrentMoverOf(s){
+  const real = state;
+  try{ state = s; return currentMover(); }
+  finally{ state = real; }
+}
+function mctsActionsOf(s, color){
+  const real = state;
+  try{ state = s; return collectBotOptions(color).map(a=>({...a, color})); }
+  finally{ state = real; }
+}
+function mctsApply(s, action){
+  const real = state;
+  try{
+    state = cloneGameState(s);
+    applyBotChoice(action.color, action); // placePiece/performMove auto-advance the turn via finishAction
+    return state;
+  } finally { state = real; }
+}
+function mctsSampleDiceRoll(){
+  return {d1:1+Math.floor(Math.random()*6), d2:1+Math.floor(Math.random()*6)};
+}
+function mctsApplyDiceRoll(s, roll){
+  const clone = cloneGameState(s);
+  clone.dice = {...roll};
+  return clone;
+}
+// Rollout action picking: ranks the legal options by this color's own
+// scoreOption (the exact same scoring the greedy/lookahead bots use for
+// their personas) and samples with a geometric bias toward the top of that
+// ranking, instead of picking uniformly at random. Must run under the same
+// state-swap window as scoreOption/collectBotOptions, since those read the
+// module-global `state` too.
+function mctsPickRolloutAction(s, color, actions){
+  if(actions.length===1) return actions[0];
+  const real = state;
+  try{
+    state = s;
+    const ranked = [...actions].sort((a,b)=>scoreOption(color,b)-scoreOption(color,a));
+    const weights = ranked.map((_,i)=>Math.pow(MCTS_ROLLOUT_BIAS,i));
+    const total = weights.reduce((a,b)=>a+b,0);
+    let r = Math.random()*total;
+    for(let i=0;i<ranked.length;i++){ r-=weights[i]; if(r<=0) return ranked[i]; }
+    return ranked[ranked.length-1];
+  } finally { state = real; }
+}
+// Rollout: plays from `s` to a terminal state (or until maxPlies is hit, in
+// which case the game is treated as undecided), using the persona-weighted
+// rollout policy above for both sides - so BOTH players' configured
+// personas shape the rollout, not just the bot's own.
+function mctsRollout(s, maxPlies){
+  let cur = s;
+  let plies = 0;
+  while(!cur.winner && plies<maxPlies){
+    if(cur.dice===null){
+      cur = mctsApplyDiceRoll(cur, mctsSampleDiceRoll());
+      continue;
+    }
+    const mover = mctsCurrentMoverOf(cur);
+    const actions = mctsActionsOf(cur, mover);
+    if(actions.length===0){
+      cur = cloneGameState(cur);
+      cur.winner = 'draw'; cur.isDraw = true;
+      break;
+    }
+    const pick = mctsPickRolloutAction(cur, mover, actions);
+    cur = mctsApply(cur, pick);
+    plies++;
+  }
+  return cur;
+}
+function mctsCreateNode(s, parent, incomingAction){
+  const node = {state:s, parent, incomingAction, children:new Map(), visits:0, value:0};
+  node.isTerminal = !!s.winner;
+  node.isChance = !node.isTerminal && s.dice===null;
+  if(!node.isTerminal && !node.isChance){
+    node.mover = mctsCurrentMoverOf(s);
+    node.untriedActions = mctsActionsOf(s, node.mover);
+  }
+  return node;
+}
+// Progressive bias: nudges re-visits toward options that LOOK good by the
+// same heuristic (scoreOption) that already flavors rollouts, without ever
+// overriding real evidence - an unvisited child is always Infinity (so the
+// first pass across every option stays uniform), and this term's weight
+// shrinks as 1/(1+visits), fading out once a child has actually been tried
+// enough for its simulated win rate to mean something. Added because plain
+// UCT, at iteration counts a live game can afford, sometimes lets a
+// heuristically-terrible move (e.g. a pointless self-capture) end up with
+// as many visits as anything else purely from early noise.
+const MCTS_PROGRESSIVE_BIAS_WEIGHT = 2;
+function mctsProgressiveBias(parentState, parentMover, incomingAction, visits){
+  if(!parentMover || !incomingAction || incomingAction.type===undefined) return 0; // no mover (chance node) or this is a dice roll, not a scoreable action
+  const real = state;
+  try{
+    state = parentState;
+    const raw = scoreOption(parentMover, incomingAction);
+    return MCTS_PROGRESSIVE_BIAS_WEIGHT * Math.tanh(raw/100) / (1+visits);
+  } finally { state = real; }
+}
+function mctsUctScore(child, parentVisits, parentState, parentMover){
+  if(child.visits===0) return Infinity;
+  return (child.value/child.visits)
+    + MCTS_EXPLORATION_C*Math.sqrt(Math.log(parentVisits)/child.visits)
+    + mctsProgressiveBias(parentState, parentMover, child.incomingAction, child.visits);
+}
+function mctsSelectBestChild(node){
+  let best=null, bestScore=-Infinity;
+  for(const child of node.children.values()){
+    const sc = mctsUctScore(child, node.visits, node.state, node.mover);
+    if(sc>bestScore){ bestScore=sc; best=child; }
+  }
+  return best;
+}
+function mctsTreePolicy(root){
+  let node = root;
+  const path = [node];
+  while(!node.isTerminal){
+    if(node.isChance){
+      const roll = mctsSampleDiceRoll();
+      const key = `${roll.d1},${roll.d2}`;
+      let child = node.children.get(key);
+      if(!child){
+        child = mctsCreateNode(mctsApplyDiceRoll(node.state, roll), node, roll);
+        node.children.set(key, child);
+        path.push(child);
+        return path;
+      }
+      node = child; path.push(node); continue;
+    }
+    if(node.untriedActions.length>0){
+      const idx = Math.floor(Math.random()*node.untriedActions.length);
+      const action = node.untriedActions.splice(idx,1)[0];
+      const child = mctsCreateNode(mctsApply(node.state, action), node, action);
+      node.children.set(mctsActionKey(action), child);
+      path.push(child);
+      return path;
+    }
+    if(node.children.size===0) break; // dead end - shouldn't happen, but don't loop forever
+    node = mctsSelectBestChild(node);
+    path.push(node);
+  }
+  return path;
+}
+function mctsRewardFor(terminalState, color){
+  const w = terminalState.winner;
+  if(w===color) return 1;
+  if(w==null || w==='draw') return 0.5;
+  return 0;
+}
+function mctsBackpropagate(path, terminalState){
+  for(let i=path.length-1; i>=0; i--){
+    const node = path[i];
+    node.visits++;
+    if(i===0) continue;
+    const parent = path[i-1];
+    if(parent.isChance) continue; // no mover chose this transition - nothing to score it against
+    node.value += mctsRewardFor(terminalState, parent.mover);
+  }
+}
+// Entry point: runs `iterations` playouts from the REAL current state (not
+// a clone - MCTS never mutates it directly, everything happens on clones
+// via mctsApply/mctsApplyDiceRoll) and returns the most-visited action.
+function mctsChooseAction(color, iterations){
+  const root = mctsCreateNode(state, null, null);
+  if(root.isTerminal || root.isChance || root.untriedActions.length===0) return null;
+
+  simulatingBot = true;
+  for(let i=0;i<iterations;i++){
+    const path = mctsTreePolicy(root);
+    const leaf = path[path.length-1];
+    const terminal = leaf.isTerminal ? leaf.state : mctsRollout(leaf.state, MCTS_MAX_ROLLOUT_PLIES);
+    mctsBackpropagate(path, terminal);
+  }
+  simulatingBot = false;
+
+  let bestChild=null, bestVisits=-1;
+  for(const child of root.children.values()){
+    if(child.visits>bestVisits){ bestVisits=child.visits; bestChild=child; }
+  }
+  return bestChild ? bestChild.incomingAction : null;
+}
+
+function pickBotAction(color){
+  const options = collectBotOptions(color);
+  if(options.length===0) return null;
+  const action = mctsChooseAction(color, botDifficulty.iterations);
+  return action || bestScored(color, options); // fallback safety net - shouldn't normally trigger
+}
+
+function maybeBotTurn(){
+  if(!botColor || state.winner) return;
+
+  // Rolling is a separate step from acting, done by the round's designated
+  // roller (the player who moves SECOND that round) before anyone acts -
+  // so this check is independent of currentMover(), not gated behind it.
+  if(!state.dice){
+    if(roundRoller()!==botColor || botBusy) return;
+    botBusy = true;
+    document.getElementById('bot-thinking').textContent = `${botPersona.name} (${botDifficulty.name}) is rolling…`;
+    document.getElementById('bot-thinking').style.display = 'block';
+    setTimeout(()=>{
+      botBusy = false;
+      document.getElementById('bot-thinking').style.display = 'none';
+      if(state.winner || state.dice) return;
+      const d1 = 1+Math.floor(Math.random()*6);
+      const d2 = 1+Math.floor(Math.random()*6);
+      state.dice = {d1,d2};
+      playDiceSound();
+      log(`Round ${state.round}: dice rolled — ${d1} and ${d2}.`);
+      render();
+    }, 600);
+    return;
+  }
+
+  const mover = currentMover();
+  if(mover !== botColor || botBusy) return;
+  botBusy = true;
+  document.getElementById('bot-thinking').textContent = `${botPersona.name} (${botDifficulty.name}) is thinking…`;
+  document.getElementById('bot-thinking').style.display = 'block';
+  setTimeout(()=>{
+    botBusy = false;
+    document.getElementById('bot-thinking').style.display = 'none';
+    if(state.winner || currentMover()!==botColor) return;
+    const choice = pickBotAction(botColor);
+    if(!choice){
+      declareStalemateDraw(botColor);
+      return;
+    }
+    if(choice.type==='place') placePiece(botColor, choice.pieceId);
+    else performMove(botColor, choice.pieceId, choice.move);
+  }, 600);
+}
+
+// ---------- rendering ----------
+const svg = document.getElementById('board-svg');
+function el(tag,attrs){
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+let simulatingBot = false; // true while the bot is exploring hypothetical moves on a cloned state - render() is a no-op then, so the real board never flickers through fake positions
+
+// Last known screen position per piece (keyed "color-pieceId"), used to FLIP-animate
+// pieces sliding to their new spot instead of popping there on every re-render.
+let piecePositions = {};
+
+// Standard 3x3 dice-pip layout, positions numbered left-to-right/top-to-bottom
+// (no p4 in the layout means no middle-row-center use beyond value 1/3/5).
+const DIE_PIPS = {
+  1:[4], 2:[1,7], 3:[1,4,7], 4:[1,2,6,7], 5:[1,2,4,6,7], 6:[1,2,3,5,6,7]
+};
+function renderDieFace(elId, value){
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  if(!value) return;
+  (DIE_PIPS[value]||[]).forEach(p=>{
+    el.appendChild(el.ownerDocument.createElement('span')).className = 'pip p'+p;
+  });
+}
+
+function render(){
+  if(simulatingBot) return;
+  renderBoard();
+  renderControls();
+  document.getElementById('body-status').textContent =
+    `White Body captured: ${state.bodyCaptured.white?'yes':'no'} · Black Body captured: ${state.bodyCaptured.black?'yes':'no'}`;
+  updatePieceReference();
+  const logDiv = document.getElementById('log');
+  logDiv.innerHTML = state.log.map(l=>`<div>• ${l}</div>`).join('');
+
+  if(state.winner){
+    document.getElementById('win-overlay').classList.add('show');
+    document.getElementById('win-title').textContent = state.isDraw ? 'Draw' : `${state.winner==='white'?'White':'Black'} wins`;
+    document.getElementById('win-reason').textContent = state.winReason;
+    try{
+      localStorage.setItem('nefesh-last-game-log', JSON.stringify({
+        log: state.log.slice().reverse(),
+        winner: state.winner,
+        winReason: state.winReason
+      }));
+      refreshLastGameBanner();
+    } catch(e){ /* localStorage unavailable (e.g. private browsing) - not critical, skip silently */ }
+  } else {
+    document.getElementById('win-overlay').classList.remove('show');
+  }
+  maybeBotTurn();
+}
+
+// Subtle stand-in for the old bold X icon: just enough to hint that the hub
+// is a true crossing (16<->18, 17<->19), not a simple ring - two thin dashed
+// lines along the same diagonal axes. Unlike the old icon, this needs no
+// flip-handling at all: a 180-degree rotation maps each diagonal axis onto
+// itself, so the lines are correct in both orientations without change.
+// Small filled triangle at the end of a guideline, pointing outward along
+// the radius - used to mark which quadrant (light or dark) each end connects
+// to, same meaning the old bold X carried.
+function smallArrowTip(cx,cy,angle,len,fill,stroke){
+  const dirX=Math.cos(angle), dirY=Math.sin(angle);
+  const tipX=cx+len*dirX, tipY=cy+len*dirY;
+  const size=7, halfW=4;
+  const baseX=tipX-dirX*size, baseY=tipY-dirY*size;
+  const perpX=-dirY, perpY=dirX;
+  return el('polygon',{
+    points:`${tipX},${tipY} ${baseX+perpX*halfW},${baseY+perpY*halfW} ${baseX-perpX*halfW},${baseY-perpY*halfW}`,
+    fill, stroke, 'stroke-width':0.8, 'stroke-linejoin':'round'
+  });
+}
+// Decorative checkered infinity symbol at the center - a real lemniscate
+// curve (not a font glyph), drawn as a thin band and sliced into alternating
+// light/dark segments like the board's own checkered loops. Purely thematic:
+// the directional/crossing information is still carried by diagonalGuideline
+// below, since a single infinity symbol only has one axis and can't
+// represent both of the hub's diagonal connections at once.
+function checkeredInfinitySymbol(cx,cy,scale,halfWidth,numSegments){
+  const samples = 240;
+  const pts = [];
+  for(let i=0;i<samples;i++){
+    const t = (i/samples)*2*Math.PI;
+    const denom = 1+Math.sin(t)*Math.sin(t);
+    pts.push({x:cx+scale*Math.cos(t)/denom, y:cy+scale*Math.sin(t)*Math.cos(t)/denom});
+  }
+  const g = el('g',{});
+  const segLen = Math.floor(samples/numSegments);
+  for(let s=0;s<numSegments;s++){
+    const startI = s*segLen, endI = (s===numSegments-1) ? samples : startI+segLen;
+    const outer=[], inner=[];
+    for(let i=startI;i<=endI;i++){
+      const idx = i%samples;
+      const prev = pts[(idx-1+samples)%samples], next = pts[(idx+1)%samples];
+      let dx=next.x-prev.x, dy=next.y-prev.y;
+      const len=Math.hypot(dx,dy)||1; dx/=len; dy/=len;
+      const nx=-dy, ny=dx, p=pts[idx];
+      outer.push({x:p.x+nx*halfWidth, y:p.y+ny*halfWidth});
+      inner.push({x:p.x-nx*halfWidth, y:p.y-ny*halfWidth});
+    }
+    const quad = outer.concat(inner.slice().reverse());
+    g.appendChild(el('polygon',{
+      points: quad.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '),
+      fill: s%2===0 ? '#e9dcc0' : '#181410',
+      stroke:'#5c422c', 'stroke-width':0.6
+    }));
+  }
+  return g;
+}
+
+function diagonalGuideline(cx,cy,len){
+  const g = el('g',{});
+  // Same rule as the old X: each end's color marks which quadrant (light or
+  // dark) it connects to, so it flips along with the board exactly like the
+  // old icon did - only the line's own axis is flip-invariant, not its ends.
+  const flip = isBoardFlipped() ? Math.PI : 0;
+  [225,315].forEach(deg=>{
+    const blackAngle = deg*Math.PI/180 + flip;
+    const whiteAngle = blackAngle + Math.PI;
+    const bx=cx+len*Math.cos(blackAngle), by=cy+len*Math.sin(blackAngle);
+    const wx=cx+len*Math.cos(whiteAngle), wy=cy+len*Math.sin(whiteAngle);
+    g.appendChild(el('line',{x1:bx, y1:by, x2:wx, y2:wy, stroke:'rgba(224,178,90,0.4)', 'stroke-width':1.4, 'stroke-dasharray':'3,3'}));
+    g.appendChild(smallArrowTip(cx,cy,blackAngle,len,'#141110','#8a7757'));
+    g.appendChild(smallArrowTip(cx,cy,whiteAngle,len,'#f4ecd8','#5c422c'));
+  });
+  return g;
+}
+
+// A short curved arrow drawn inside a loop's hollow center (near its inner
+// edge, not on the checkered ring itself), used to show a color's rotational
+// direction of travel around that loop. direction: +1 = increasing angle
+// (clockwise in this screen's y-down coordinates), -1 = counterclockwise.
+function drawLoopArrow(cx,cy,radius,centerAngle,halfSpan,direction,fill,stroke){
+  const a0 = centerAngle-halfSpan, a1 = centerAngle+halfSpan;
+  const tailAngle = direction>0 ? a0 : a1;
+  const headAngle = direction>0 ? a1 : a0;
+  const pullBack = Math.min(halfSpan*0.5, 0.14);
+  const shaftEndAngle = headAngle - direction*pullBack;
+  const pt = a => ({x:cx+radius*Math.cos(a), y:cy+radius*Math.sin(a)});
+  const tail = pt(tailAngle), shaftEnd = pt(shaftEndAngle), tip = pt(headAngle);
+  const sweepFlag = direction>0 ? 1 : 0;
+  const largeArcFlag = Math.abs(a1-a0) > Math.PI ? 1 : 0;
+  const g = el('g',{});
+  g.appendChild(el('path',{
+    d:`M ${tail.x} ${tail.y} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${shaftEnd.x} ${shaftEnd.y}`,
+    fill:'none', stroke:fill, 'stroke-width':6, 'stroke-linecap':'round'
+  }));
+  const tanX = -Math.sin(headAngle)*direction, tanY = Math.cos(headAngle)*direction;
+  const perpX = -tanY, perpY = tanX;
+  const headLen=13, headWidth=10;
+  const baseX = tip.x-tanX*headLen, baseY = tip.y-tanY*headLen;
+  g.appendChild(el('polygon',{
+    points:`${tip.x},${tip.y} ${baseX+perpX*headWidth/2},${baseY+perpY*headWidth/2} ${baseX-perpX*headWidth/2},${baseY-perpY*headWidth/2}`,
+    fill, stroke, 'stroke-width':1, 'stroke-linejoin':'round'
+  }));
+  return g;
+}
+
+// Which loop's true identity (originally-left, master idx 0-15, vs
+// originally-right, master idx 20-35) currently renders at a given SCREEN
+// position - accounting for the flip, since flipping swaps which loop's
+// content shows on which side (same swap used everywhere else on the board).
+function loopIdentityAtScreenSlot(screenSide){
+  if(!isBoardFlipped()) return screenSide;
+  return screenSide==='left' ? 'right' : 'left';
+}
+// Black moves counterclockwise on the originally-left loop and clockwise on
+// the originally-right loop (see PATH_ORDER); White is always the opposite
+// of Black on whichever loop this is. direction here matches drawLoopArrow's
+// convention: +1 = increasing angle = clockwise, -1 = counterclockwise.
+function blackDirectionOnLoop(loopIdentity){
+  return loopIdentity==='left' ? -1 : 1;
+}
+
+function renderBoard(){
+  svg.innerHTML='';
+  svg.appendChild(buildBoardDefs());
+
+  let legalTargets = {};
+  let winMove = null;
+  if(state.selected){
+    const selPiece = state.pieces[state.selected.color][state.selected.pieceId];
+    if(selPiece.status==='bench'){
+      // A bench piece has exactly one legal destination - its own Placement
+      // space - so it's highlighted the same way any other move target is,
+      // instead of placing the instant it's clicked.
+      const startMaster = START_MASTER[state.selected.color];
+      const startOcc = occupantsAtMaster(startMaster);
+      if(!soulCaptureBlocked(startOcc)){
+        legalTargets[startMaster] = {kind:'bench-placement', masterIdx:startMaster, occ:startOcc};
+      }
+    } else {
+      const moves = getLegalMoves(state.selected.color, state.selected.pieceId);
+      moves.forEach(m=>{
+        if(m.kind==='soul-win'){ winMove = m; return; } // handled separately - highlighted on the Infinite itself, not the board space it happens to share
+        if(m.masterIdx!==undefined) legalTargets[m.masterIdx] = m;
+      });
+    }
+  }
+
+  // Step 2 of this pass: the hub now moves to the front - drawn last, fully
+  // on top, with no clipping - so it completely covers whatever loop material
+  // sits underneath it at the seam, instead of the hub being the one cut back.
+  const renderOrder = [...MASTER.filter(s=>s.zone!=='hub'), ...MASTER.filter(s=>s.zone==='hub')];
+  const hubGroup = el('g',{});
+  renderOrder.forEach(sp=>{
+    const vis = visualMaster(sp.idx); // where this space actually draws - itself, unless the board is turned to face Black
+    const isHub = sp.zone==='hub';
+    // outside the hub, spaces always alternate; inside the hub, top pair is light and bottom pair is dark (not alternating)
+    const fill = isHub ? (sp.half==='light' ? '#e9dcc0' : '#181410') : (sp.shade==='dark' ? '#181410' : '#e9dcc0');
+    const g = el('g',{});
+    const wedgeAttrs = {d:vis.path, fill, stroke:'#5c422c','stroke-width':2.8};
+    const wedge = el('path',wedgeAttrs);
+    g.appendChild(wedge);
+    if(isHub && sp.isStart){
+      const dotColor = sp.isStart==='white' ? '#f4ecd8' : '#141110';
+      g.appendChild(el('circle',{cx:vis.x, cy:vis.y, r:10, fill:dotColor, stroke:'#8a7757','stroke-width':2}));
+    }
+    // space label: zone (loop A / hub C / loop B) + position within it
+    const labelDark = fill==='#e9dcc0';
+    const labelY = (isHub && sp.isStart) ? vis.y+17 : vis.y+5;
+    const numLabel = el('text',{x:vis.x, y:labelY, 'text-anchor':'middle', 'font-size':13, 'font-weight':'700', fill: labelDark?'#181410':'#e9dcc0', 'pointer-events':'none'});
+    numLabel.textContent = displayLabel(sp.idx);
+    g.appendChild(numLabel);
+    if(legalTargets[sp.idx]){
+      const move = legalTargets[sp.idx];
+      // A move is flagged red rather than gold if landing there removes a
+      // piece - the opponent's, or your own (self-capture), or the Soul
+      // circling all the way back past its own start - so a capture is
+      // never a surprise.
+      const isCapture = move.kind==='soul-overshoot-capture'
+        || ((move.kind==='normal' || move.kind==='bench-placement') && move.occ && move.occ.length>0);
+      const ringAttrs = isCapture
+        ? {d:vis.path, fill:'rgba(138,46,31,0.32)', stroke:'var(--danger)','stroke-width':5}
+        : {d:vis.path, fill:'rgba(224,178,90,0.28)', stroke:'var(--gold-bright)','stroke-width':5};
+      const ring = el('path',ringAttrs);
+      ring.classList.add('legal-move-space');
+      const handler = ()=>{
+        const mover = currentMover();
+        if(mover!==state.selected.color) return;
+        if(move.kind==='bench-placement') placePiece(state.selected.color, state.selected.pieceId);
+        else performMove(state.selected.color, state.selected.pieceId, legalTargets[sp.idx]);
+      };
+      ring.addEventListener('click',handler);
+      g.style.cursor='pointer';
+      g.addEventListener('click',handler);
+      g.appendChild(ring);
+    }
+    if(isHub) hubGroup.appendChild(g);
+    else svg.appendChild(g);
+  });
+  // A plain blurred circle standing in for the hub's shadow, drawn just
+  // behind it - simpler and more reliable than filtering the hub's own
+  // pie-wedge paths directly (see buildBoardDefs for why).
+  svg.appendChild(el('circle',{cx:Hx, cy:Hy+3, r:HUB_R_OUT, fill:'#000000', opacity:0.35, filter:'url(#hubBlur)', 'pointer-events':'none'}));
+  svg.appendChild(hubGroup);
+
+  // A soft rim-lit sheen over each loop and the hub, on top of the flat
+  // checkered wedges - reads as one gently domed surface per zone instead
+  // of a stack of flat tiles. Non-interactive, so it never gets in the way
+  // of clicking the spaces underneath it. The loops use their true eased
+  // outline (loopSheenPath), not a plain circle - a plain circle no longer
+  // matches the flattened flanks and shows as a stray sliver of the old
+  // fully-round shape peeking out near the hub. The hub itself is still a
+  // plain circle, so it keeps the simple annulus.
+  svg.appendChild(el('path',{d:loopSheenPath(Lx,Ly,LOOP_R_IN,LOOP_R_OUT,leftStart), fill:'url(#sheenGrad)', 'pointer-events':'none'}));
+  svg.appendChild(el('path',{d:loopSheenPath(Rx,Ry,LOOP_R_IN,LOOP_R_OUT,rightStart), fill:'url(#sheenGrad)', 'pointer-events':'none'}));
+  svg.appendChild(el('path',{d:annulusPath(Hx,Hy,HUB_R_IN,HUB_R_OUT), 'fill-rule':'evenodd', fill:'url(#sheenGrad)', 'pointer-events':'none'}));
+
+  // infinite: one plain circle, with a subtle diagonal guideline hinting at the crossing
+  const infG = el('g',{});
+  infG.appendChild(el('circle',{cx:INFINITE_PT.x, cy:INFINITE_PT.y, r:INF_R, fill:'#6b4a35', stroke:'#5c422c','stroke-width':3}));
+  if(winMove){
+    const winRing = el('circle',{cx:INFINITE_PT.x, cy:INFINITE_PT.y, r:INF_R+8, fill:'rgba(224,178,90,0.28)', stroke:'var(--gold-bright)','stroke-width':5});
+    winRing.classList.add('legal-move-space');
+    const handler = ()=>{
+      const mover = currentMover();
+      if(mover!==state.selected.color) return;
+      performMove(state.selected.color, state.selected.pieceId, winMove);
+    };
+    winRing.addEventListener('click',handler);
+    infG.style.cursor='pointer';
+    infG.addEventListener('click',handler);
+    infG.appendChild(winRing);
+  }
+  infG.appendChild(checkeredInfinitySymbol(INFINITE_PT.x, INFINITE_PT.y, INF_R*0.62, INF_R*0.09, 16));
+  infG.appendChild(diagonalGuideline(INFINITE_PT.x, INFINITE_PT.y, INF_R*0.90));
+  infG.appendChild(el('text',{x:INFINITE_PT.x, y:INFINITE_PT.y+INF_R+18, 'text-anchor':'middle', 'font-size':13, 'font-weight':'700', fill:'var(--gold-bright)'})).textContent='INF';
+  svg.appendChild(infG);
+
+  // Direction-of-travel arrows: each loop gets 4 short "signpost" arrows,
+  // clustered in pairs at the top and bottom of the loop (not the sides),
+  // hugging the inside of the checkered ring, alternating black/white within
+  // each cluster. Every loop hosts both colors (just at different points in
+  // each color's lap, moving opposite ways), so both are shown on both loops.
+  const arrowRadius = LOOP_R_IN*0.92;
+  const arrowHalfSpan = 0.16;
+  const SIGNPOST_ANGLES = [270-22, 270+22, 90-22, 90+22].map(deg=>deg*Math.PI/180); // top pair, bottom pair
+  [
+    {side:'left', cx:Lx, cy:Ly},
+    {side:'right', cx:Rx, cy:Ry},
+  ].forEach(({side, cx, cy})=>{
+    const identity = loopIdentityAtScreenSlot(side);
+    const blackDir = blackDirectionOnLoop(identity);
+    const whiteDir = -blackDir;
+    // Mirror the color order on the left loop so the two loops read as a
+    // left-right mirror image of each other, not an identical repeat.
+    const mirrored = side==='left';
+    SIGNPOST_ANGLES.forEach((angle,i)=>{
+      const isBlack = mirrored ? (i%2===1) : (i%2===0);
+      const dir = isBlack ? blackDir : whiteDir;
+      const fill = isBlack ? '#141110' : '#f4ecd8';
+      const stroke = isBlack ? '#8a7757' : '#5c422c';
+      svg.appendChild(drawLoopArrow(cx, cy, arrowRadius, angle, arrowHalfSpan, dir, fill, stroke));
+    });
+  });
+
+  // pieces
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  ['white','black'].forEach(color=>{
+    PIECE_DEFS.forEach(def=>{
+      const p = state.pieces[color][def.id];
+      if(p.status!=='onboard') return;
+      const m = pathToMaster(color, p.progress);
+      const vis = visualMaster(m);
+      const pt = {x: vis.x, y: vis.y};
+      const isSel = state.selected && state.selected.color===color && state.selected.pieceId===def.id;
+      const g = el('g',{style:'cursor:pointer', filter:'url(#pieceShadow)'});
+      const fill = color==='white' ? 'url(#whitePieceGrad)' : 'url(#blackPieceGrad)';
+      const textColor = color==='white' ? '#1C1712' : '#efe3c8';
+      g.appendChild(el('circle',{cx:pt.x, cy:pt.y, r:18, fill, stroke: isSel?'var(--gold-bright)':'#8a7757', 'stroke-width': isSel?4.2:2.2}));
+      const t = el('text',{x:pt.x, y:pt.y+5, 'text-anchor':'middle', 'font-size':14, fill:textColor, 'font-weight':'700'});
+      t.textContent = def.abbr;
+      g.appendChild(t);
+      g.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        const mover = currentMover();
+        if(mover!==color || state.winner) return;
+        if(!state.dice){ return; }
+        state.selected = isSel? null : {color, pieceId:def.id};
+        render();
+      });
+      svg.appendChild(g);
+
+      // FLIP-animate: if this piece was somewhere else last render, slide it
+      // from there to here instead of just popping into the new spot.
+      const key = color+'-'+def.id;
+      const prevPt = piecePositions[key];
+      piecePositions[key] = pt;
+      if(prevPt && !prefersReducedMotion && (prevPt.x!==pt.x || prevPt.y!==pt.y)){
+        g.style.transition = 'none';
+        g.style.transform = `translate(${prevPt.x-pt.x}px, ${prevPt.y-pt.y}px)`;
+        requestAnimationFrame(()=>{
+          requestAnimationFrame(()=>{
+            g.style.transition = 'transform 380ms cubic-bezier(.4,0,.2,1)';
+            g.style.transform = 'translate(0,0)';
+          });
+        });
+      }
+    });
+  });
+
+  renderBenchTray('white');
+  renderBenchTray('black');
+  renderCapturedRow('white');
+  renderCapturedRow('black');
+}
+
+// Soul status is the one piece of state that isn't visible just by looking at
+// the board (the board shows position, not progress-toward-the-Infinite), so
+// it gets a line in the menu's Piece Reference tab whenever it's relevant.
+function updatePieceReference(){
+  ['white','black'].forEach(color=>{
+    const p = state.pieces[color].soul;
+    const el = document.getElementById('soul-status-'+color);
+    const label = color==='white' ? 'White' : 'Black';
+    if(p.status==='onboard' && p.completedCircuit){
+      const remaining = TRACK_LEN - p.progress;
+      const winDeltas = remaining>=1 ? `+${remaining-1} or +${remaining}` : `+${remaining}`;
+      el.textContent = state.bodyCaptured[color]
+        ? `${label}'s Soul has completed its circuit and needs ${winDeltas} to win.`
+        : `${label}'s Soul has completed its circuit, but ${label}'s own Body isn't captured yet - it can't enter the Infinite until then.`;
+    } else {
+      el.textContent = '';
+    }
+  });
+}
+
+// Which half of the screen a color's fixed seat currently occupies. Each
+// color's seat is always the SAME two hub quadrants (White: C1/C2, Black:
+// C3/C4) - what changes with a flip is which half of the SCREEN that lands
+// on, not which quadrants belong to which color.
+function seatIsBottom(color){
+  const seatIdx = color==='white' ? 16 : 18;
+  return visualMaster(seatIdx).y > Hy;
+}
+
+const BENCH_TRAY_W = 220, BENCH_TRAY_H = 56, TRAY_MARGIN = 14;
+// Top-left corner of this color's bench tray, in board coordinates. Bench
+// sits on the outer (right) side of whichever half is this color's seat;
+// captured pieces (rendered separately, no tray) sit loose on the inner
+// (left) side of that same half - a diagonal pairing with the opponent's.
+function benchTrayXY(color){
+  const bottom = seatIsBottom(color);
+  return {
+    x: bottom ? (840 - TRAY_MARGIN - BENCH_TRAY_W) : TRAY_MARGIN,
+    y: bottom ? (600 - TRAY_MARGIN - BENCH_TRAY_H) : TRAY_MARGIN
+  };
+}
+
+function renderBenchTray(color){
+  const {x,y} = benchTrayXY(color);
+  const mover = currentMover();
+  const canAct = mover===color && !state.winner;
+  const g = el('g',{});
+  g.appendChild(el('rect',{x, y, width:BENCH_TRAY_W, height:BENCH_TRAY_H, rx:8, fill:'#2c2018', stroke:'#5c422c', 'stroke-width':3}));
+  const benchPieces = PIECE_DEFS.filter(d=>state.pieces[color][d.id].status==='bench');
+  const fill = color==='white' ? 'url(#whitePieceGrad)' : 'url(#blackPieceGrad)';
+  const textColor = color==='white' ? '#1C1712' : '#efe3c8';
+  const pitch = 48, r = 18;
+  benchPieces.forEach((def,i)=>{
+    const cx = x + 26 + i*pitch, cy = y + BENCH_TRAY_H/2;
+    const isSel = state.selected && state.selected.color===color && state.selected.pieceId===def.id;
+    const pg = el('g',{style: canAct ? 'cursor:pointer' : '', opacity: canAct?1:0.55, filter:'url(#pieceShadow)'});
+    pg.appendChild(el('circle',{cx, cy, r, fill, stroke: isSel?'var(--gold-bright)':'#8a7757', 'stroke-width': isSel?4.2:2.2}));
+    const t = el('text',{x:cx, y:cy+5, 'text-anchor':'middle','font-size':14, fill:textColor,'font-weight':'700'});
+    t.textContent = def.abbr;
+    pg.appendChild(t);
+    pg.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      if(!canAct) return;
+      state.selected = isSel ? null : {color, pieceId:def.id};
+      render();
+    });
+    g.appendChild(pg);
+  });
+  svg.appendChild(g);
+}
+
+// Captured pieces get no tray - like a real board, they're just set down off
+// to the side. They sit in the corner diagonally opposite this color's bench
+// (same half of the screen, other side), growing inward from the outer edge
+// as more accumulate instead of reserving space for a full set up front.
+function renderCapturedRow(zoneColor){
+  // The zone is named for whose CORNER it sits in, not whose pieces it holds -
+  // it shows the OPPONENT's captured pieces (their losses, sitting near you,
+  // same as a real board where you set your opponent's captured pieces off to
+  // your own side rather than piling them back with their own bench).
+  const pieceColor = zoneColor==='white' ? 'black' : 'white';
+  const capturedPieces = PIECE_DEFS.filter(d=>state.pieces[pieceColor][d.id].status==='captured');
+  if(capturedPieces.length===0) return;
+  const bottom = seatIsBottom(zoneColor);
+  const cy = benchTrayXY(zoneColor).y + BENCH_TRAY_H/2;
+  const growRight = bottom; // bench sits right when bottom, left when top - captured takes the other side
+  const r = 18, pitch = 48;
+  const startX = growRight ? (TRAY_MARGIN + r) : (840 - TRAY_MARGIN - r);
+  const fill = pieceColor==='white' ? 'url(#whitePieceGrad)' : 'url(#blackPieceGrad)';
+  const textColor = pieceColor==='white' ? '#1C1712' : '#efe3c8';
+  const g = el('g',{filter:'url(#pieceShadow)'});
+  capturedPieces.forEach((def,i)=>{
+    const cx = growRight ? startX + i*pitch : startX - i*pitch;
+    g.appendChild(el('circle',{cx, cy, r, fill, stroke:'#8a7757','stroke-width':2.2}));
+    const t = el('text',{x:cx, y:cy+5, 'text-anchor':'middle', 'font-size':14, fill:textColor, 'font-weight':'700'});
+    t.textContent = def.abbr;
+    g.appendChild(t);
+  });
+  svg.appendChild(g);
+}
+
+function renderControls(){
+  updateMatchSummary();
+  document.getElementById('round-num').textContent = state.round;
+  const mover = currentMover();
+  const pill = document.getElementById('acting-pill');
+  if(state.winner){
+    pill.textContent = 'Game over';
+    pill.className='pill black';
+  } else if(mover){
+    pill.textContent = (mover==='white'?'White':'Black') + (mover===botColor ? ` (${botPersona.name} · ${botDifficulty.name})` : '');
+    pill.className = 'pill '+mover;
+  }
+  renderDieFace('die1', state.dice ? state.dice.d1 : null);
+  renderDieFace('die2', state.dice ? state.dice.d2 : null);
+
+  const opts = diceBaseOptions();
+  document.getElementById('move-options').innerHTML = opts.length
+    ? opts.map(o=>`<span class="move-chip">${o}</span>`).join('')
+    : '';
+
+  const rollBtn = document.getElementById('roll-btn');
+  rollBtn.disabled = !!state.dice || !!state.winner || roundRoller()===botColor;
+
+  const passBtn = document.getElementById('pass-btn');
+  const status = document.getElementById('turn-status');
+  if(!state.winner && mover && state.dice && !hasAnyLegalAction(mover)){
+    passBtn.disabled=false;
+    status.textContent = `${mover} has no legal placement or move.`;
+  } else {
+    passBtn.disabled=true;
+    status.textContent = state.dice ? '' : `${roundRoller()==='white'?'White':'Black'} rolls to begin the round.`;
+  }
+}
+
+document.getElementById('roll-btn').addEventListener('click', ()=>{
+  const d1 = 1+Math.floor(Math.random()*6);
+  const d2 = 1+Math.floor(Math.random()*6);
+  state.dice = {d1,d2};
+  playDiceSound();
+  log(`Round ${state.round}: dice rolled — ${d1} and ${d2}.`);
+  render();
+});
+
+document.getElementById('pass-btn').addEventListener('click', ()=>{
+  const mover = currentMover();
+  if(!mover) return;
+  declareStalemateDraw(mover);
+});
+
+function populateOptionList(selectId, items, currentId){
+  const select = document.getElementById(selectId);
+  select.innerHTML = '';
+  items.forEach(item=>{
+    const opt = document.createElement('option');
+    opt.value = item.id;
+    opt.textContent = item.name;
+    select.appendChild(opt);
+  });
+  select.value = currentId;
+}
+
+// ---------- new-game setup overlay ----------
+// Browsing these options never touches the live game - nothing takes effect
+// until "Start Game" is clicked, so opening this just to look around can't
+// accidentally reset a match in progress.
+function updateSetupPersonaBlurb(){
+  const p = PERSONAS.find(p=>p.id===document.getElementById('setup-persona-select').value);
+  document.getElementById('setup-persona-blurb').textContent = p ? p.blurb : '';
+}
+function updateSetupDifficultyBlurb(){
+  const d = DIFFICULTIES.find(d=>d.id===document.getElementById('setup-difficulty-select').value);
+  document.getElementById('setup-difficulty-blurb').textContent = d ? d.blurb : '';
+}
+function currentModeValue(){
+  return botColor==='black' ? 'bot-black' : (botColor==='white' ? 'bot-white' : 'pvp');
+}
+function openSetupOverlay(){
+  document.querySelectorAll('input[name="setup-mode"]').forEach(radio=>{
+    radio.checked = (radio.value === currentModeValue());
+  });
+  populateOptionList('setup-persona-select', PERSONAS, botPersona.id);
+  populateOptionList('setup-difficulty-select', DIFFICULTIES, botDifficulty.id);
+  updateSetupPersonaBlurb();
+  updateSetupDifficultyBlurb();
+  document.getElementById('setup-picker').style.display = botColor ? 'block' : 'none';
+  document.getElementById('setup-overlay').classList.add('show');
+}
+function closeSetupOverlay(){
+  document.getElementById('setup-overlay').classList.remove('show');
+}
+function updateMatchSummary(){
+  const summary = document.getElementById('match-summary');
+  if(!botColor){
+    summary.textContent = 'Two players (pass & play)';
+  } else {
+    const humanColor = botColor==='white' ? 'black' : 'white';
+    summary.textContent = `Playing ${humanColor==='white'?'White':'Black'} vs ${botPersona.name} (${botDifficulty.name})`;
+  }
+}
+
+document.getElementById('menu-newgame-btn').addEventListener('click', ()=>{
+  closeMenuOverlay();
+  openSetupOverlay();
+});
+document.getElementById('setup-close-btn').addEventListener('click', closeSetupOverlay);
+document.getElementById('reset-btn').addEventListener('click', openSetupOverlay);
+
+document.querySelectorAll('input[name="setup-mode"]').forEach(radio=>{
+  radio.addEventListener('change', (e)=>{
+    const isBot = e.target.value !== 'pvp';
+    document.getElementById('setup-picker').style.display = isBot ? 'block' : 'none';
+  });
+});
+document.getElementById('setup-persona-select').addEventListener('change', updateSetupPersonaBlurb);
+document.getElementById('setup-difficulty-select').addEventListener('change', updateSetupDifficultyBlurb);
+
+document.getElementById('setup-start-btn').addEventListener('click', ()=>{
+  const mode = document.querySelector('input[name="setup-mode"]:checked').value;
+  botColor = mode==='bot-black' ? 'black' : (mode==='bot-white' ? 'white' : null);
+  if(botColor){
+    botPersona = PERSONAS.find(p=>p.id===document.getElementById('setup-persona-select').value) || botPersona;
+    botDifficulty = DIFFICULTIES.find(d=>d.id===document.getElementById('setup-difficulty-select').value) || botDifficulty;
+  }
+  document.getElementById('flip-board-row').style.display = botColor ? 'none' : 'block';
+  manualBoardFlip = false; // reset the manual toggle whenever a new match starts
+  syncBotProfile();
+  resetState();
+  updateMatchSummary();
+  closeSetupOverlay();
+  render();
+});
+
+document.getElementById('flip-board-btn').addEventListener('click', ()=>{
+  manualBoardFlip = !manualBoardFlip;
+  render();
+});
+
+// ---------- copy-log helpers ----------
+// Clipboard permissions are unreliable on a file:// page across browsers, so
+// this doesn't just try to copy silently and hope - it always reveals the
+// text, selected, in a visible box too. A silent clipboard copy is attempted
+// as a bonus, but the selected textarea is the guaranteed fallback: if the
+// silent copy didn't fire, a manual Cmd/Ctrl+C on the already-selected text
+// still works.
+function revealForCopy(text, btn){
+  const box = document.getElementById('log-copy-area');
+  box.style.display = 'block';
+  box.value = text;
+  box.focus();
+  box.select();
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).catch(()=>{});
+    document.execCommand('copy');
+  } catch(e){ /* best-effort - the visible selected box below is the real fallback */ }
+  const original = btn.textContent;
+  btn.textContent = 'Ready below ↓';
+  setTimeout(()=>{ btn.textContent = original; }, 2500);
+}
+
+document.getElementById('copy-log-btn').addEventListener('click', (e)=>{
+  const text = state.log.slice().reverse().join('\n');
+  revealForCopy(text || '(no moves logged yet)', e.target);
+});
+
+// Re-reads localStorage fresh every time (rather than caching a snapshot from
+// page load) so this banner - and the log "Copy it" hands over - always
+// reflects the most recently finished game, including one finished earlier in
+// this same browser session, not just whatever was saved before the page loaded.
+function refreshLastGameBanner(){
+  let saved;
+  try{ saved = localStorage.getItem('nefesh-last-game-log'); } catch(e){ saved = null; }
+  document.getElementById('last-game-note').style.display = saved ? 'block' : 'none';
+}
+document.getElementById('copy-lastgame-btn').addEventListener('click', (e)=>{
+  let saved;
+  try{ saved = localStorage.getItem('nefesh-last-game-log'); } catch(err){ saved = null; }
+  if(!saved) return;
+  try{
+    const data = JSON.parse(saved);
+    const header = `${data.winner==='draw' ? 'Draw' : (data.winner==='white'?'White':'Black')+' won'} — ${data.winReason}\n\n`;
+    revealForCopy(header + data.log.join('\n'), e.target);
+  } catch(err){ /* corrupted saved data - nothing to do */ }
+});
+refreshLastGameBanner();
+
+// ---------- How to Play guide ----------
+const HOWTO_CONTENT = {
+  rules: `
+    <h3>THE BOARD</h3>
+    <p>A figure-8: two loops connected by a central hub, with the <b>Infinite</b> right at the center. Each color has a Placement space in the hub (Black top-left, White bottom-right), and each color's path winds all the way around one loop, through the hub, around the other loop, and back — 36 spaces in a full circuit.</p>
+    <h3>YOUR PIECES</h3>
+    <p>8 per side, in two categories:</p>
+    <ul>
+      <li><b>Race pieces</b> (Creature, Dwarf, Man, Elf) — forward only. They start the game already on the board, one step past your Placement space.</li>
+      <li><b>Person pieces</b> (Mind, Will, Body, Soul) — can move forward or backward. They start on your bench; you place them onto your Placement space when you're ready to bring them in.</li>
+    </ul>
+    <h3>MOVEMENT</h3>
+    <p>Every piece has a bonus (Creature +0, Dwarf +1, Man +2, Elf +3, Mind +1, Will +2, Body +3, Soul +0). Each move is <b>the sum of both dice, plus that piece's bonus</b> — no other dice combinations. Whether the bonus is fully applied, partly applied, or not applied at all depends on Will and Mind — see below.</p>
+    <h3>WILL AND MIND: BONUSES AREN'T AUTOMATIC</h3>
+    <p>Bonuses only exist because of these two pieces:</p>
+    <ul>
+      <li><b>No Will on the board</b> (not yet placed, or captured) — none of your pieces get a bonus. Every move is dice-sum only, for your whole side.</li>
+      <li><b>Will placed and alive</b> — bonuses apply automatically, full amount, same as a normal move.</li>
+      <li><b>Will AND Mind both placed and alive</b> — you get to choose how much of the bonus to use, anywhere from 0 up to the full amount, on every move. Useful for landing exactly where you want instead of overshooting.</li>
+    </ul>
+    <p><b>Losing Will is permanent</b> — captured pieces never come back in this game. If Will is captured (by your opponent, or by your own accidental self-capture), your whole side loses its bonuses for the rest of the game. Protect Will like you'd protect Body.</p>
+    <h3>HOMECOMING: RACE PIECES CAN COME BACK STRONGER</h3>
+    <p>When a Creature, Dwarf, Man, or Elf makes it all the way around the board (a full 36-space circuit), its owner earns a second copy of that same piece — it appears on your bench, ready to be placed on your Placement space like a Person piece. Each Race type can only ever earn one extra copy this way, so if it's later captured, looping again won't earn another.</p>
+    <h3>YOUR TURN</h3>
+    <p>Dice are rolled once per round, shared by both players that round. On your turn, you either place a bench piece (a Person piece, or an earned extra Race piece) onto your Placement space, or move one piece already on the board.</p>
+    <h3>CAPTURES</h3>
+    <p>Landing on <b>any</b> occupied space — opponent's or your own — captures whatever's there, so always check what's sitting on your destination before committing to a move.</p>
+    <h3>HOW TO WIN</h3>
+    <p>Two ways:</p>
+    <ul>
+      <li>Capture the opponent's Soul.</li>
+      <li>Get your own Soul all the way around the board and land it on the Infinite, or the space just before it.</li>
+    </ul>
+    <p>The catch that ties both together: you can't capture an opponent's Soul until <b>their</b> Body has been captured, and you can't send your own Soul into the Infinite until <b>your own</b> Body has been captured. So every game has a real turning point — once a Body falls (yours or theirs), that Soul becomes both huntable <i>and</i> eligible to race for the Infinite. Until your own Body falls, your Soul can't even pass the Infinite - it'll stop right at the edge of its circuit and wait there.</p>
+    <p>If 80 rounds pass with neither Body ever captured, the game is called a draw.</p>
+  `,
+  strategy: `
+    <p>A few concrete habits that go a long way if strategy games don't usually come naturally to you — none of this requires deep calculation, just remembering to ask the right question at the right moment.</p>
+    <h3>GET YOUR BODY AND SOUL OUT, BUT NOT RECKLESSLY</h3>
+    <p>They're your most valuable pieces — literally the win condition. Waiting too long to place them just means less time to use them, but placing one onto a square an enemy piece can easily reach next round is asking for trouble. Glance at what's nearby before you place.</p>
+    <h3>THINK ABOUT WHAT "BODY CAPTURED" ACTUALLY UNLOCKS</h3>
+    <p>Capturing the opponent's Body lets you go after their Soul — but it <i>also</i> frees their Soul to start racing for the Infinite. If your own Soul isn't developed yet, you might be kicking off a race you're not ready for. Sometimes the better move is patience.</p>
+    <h3>PROTECT YOUR OWN BODY FOR AS LONG AS YOU REASONABLY CAN</h3>
+    <p>As long as it's alive, your Soul is completely safe from capture. The moment it falls, your Soul becomes fair game — so don't leave your Body sitting still in the open once enemy pieces are within striking distance.</p>
+    <h3>USE RACE PIECES AS SCOUTS, NOT TREASURES</h3>
+    <p>They're worth far less than a Person piece and can only move forward, so use them to control ground, threaten a square, or soak up a capture that would otherwise land on something valuable.</p>
+    <h3>DO THE MATH ON DISTANCE</h3>
+    <p>Since every move is (dice sum + a fixed bonus), you always know your exact possible distances before you commit. Your Soul can win by landing on the Infinite or the space just before it, so count how far away that pair of squares actually is, and keep half an eye on what it'll take to get there.</p>
+    <h3>CHECK WHAT'S "IN RANGE" BEFORE YOU MOVE</h3>
+    <p>Before settling a piece onto a square, glance at nearby enemy pieces and roughly what sums they could roll next round. It's often the whole difference between a strong square and a trap.</p>
+    <h3>NOT EVERY CAPTURE IS WORTH TAKING</h3>
+    <p>A capture that leaves your Body or Soul exposed right afterward can cost you the game even if it looks tempting in the moment. Before you take it, ask: "what can they do to me right after this?"</p>
+    <h3>WILL IS A THIRD PIECE WORTH PROTECTING LIKE BODY</h3>
+    <p>Losing Will doesn't end the game the way losing Soul does, but it's permanent and it hits your whole side at once — every piece loses its bonus for the rest of the game. Treat threats to Will with the same seriousness you'd treat threats to Body.</p>
+    <h3>RACE YOUR RACE PIECES HOME</h3>
+    <p>A Creature, Dwarf, Man, or Elf that completes a full circuit earns you a second copy of it. It's a one-time reward per type, so once a piece is close to finishing its lap, think twice before trading it away for something small — finishing the lap might be worth more.</p>
+  `,
+  personas: `
+    <p>Ten play styles, each exploitable in a different way — and a few thoughts on what changes as difficulty goes up.</p>
+    <h3>RANGER (balanced)</h3>
+    <p>Plays it straight — values captures, safety, and progress evenly. No glaring weakness, which makes it the best one to practice fundamentals against. If you can consistently beat Ranger, you're playing well.</p>
+    <h3>GUNSLINGER (aggressive)</h3>
+    <p>Chases every capture it can find and doesn't worry much about risk. Beat it by leaving out tempting-but-bad trades — a capture that looks good but exposes something bigger right after. It'll often take the bait.</p>
+    <h3>WATCHMAN (defensive)</h3>
+    <p>Very reluctant to expose any piece, even for a good trade. It usually won't come to you — press the advantage, develop faster, and don't wait around for it to make the first move.</p>
+    <h3>PILGRIM (racer)</h3>
+    <p>Focused on rushing its own Soul toward the Infinite rather than fighting you directly. Counter it by reaching its Body first — but once that happens, its Soul finally has a real timeline, so make sure yours is ready to compete too.</p>
+    <h3>VANGUARD (race-rush)</h3>
+    <p>Slow to bring its Body and Soul into play, since it's busy pushing Race pieces forward. Real opening here: get your own Body and Soul developed while it's still setting up.</p>
+    <h3>HERALD (person-rush)</h3>
+    <p>The opposite of Vanguard — develops its Person pieces fast but leaves its Race pieces sitting still. Those stationary pieces are easy, low-risk early targets.</p>
+    <h3>ASSASSIN (body-hunter)</h3>
+    <p>Obsessed with reaching your Body specifically. Keep it moving rather than sitting still — and remember, if it does capture your Body, your own Soul is now free too. It's not purely a loss, it's the start of your race.</p>
+    <h3>GUARDIAN (body-guard)</h3>
+    <p>Goes to unusual lengths to keep its own Body safe, so a direct fight for it may take a long time. Consider racing for the Infinite instead of forcing a Body capture head-on.</p>
+    <h3>ZEALOT (self-sacrifice)</h3>
+    <p>Will voluntarily give up its own Body once its Soul is out and moving, to start its Infinite race early on its own terms. Expect this sooner than with other personas — keep your own Soul's timeline in mind so you're not caught off guard.</p>
+    <h3>TURTLE (stall)</h3>
+    <p>Avoids nearly all risk, but still takes a clear win when one's obviously available. It won't blunder into bad trades, so patient, genuinely good moves beat it — just don't let its slow pace lull you into being careless yourself.</p>
+    <h3>DIFFICULTY: WHAT ACTUALLY CHANGES</h3>
+    <p>All three levels use the same search - the difference is purely how much it thinks before committing to a move.</p>
+    <ul>
+      <li><b>Easy</b> — a light search. Still weighs its options, but shallow enough to miss real threats. Good for practicing the rules and mechanics without a harsh punishment for mistakes.</li>
+      <li><b>Normal</b> — a real search each turn. Simple two-move traps (bait now, capture next turn) are unlikely to work anymore.</li>
+      <li><b>Hard</b> — a deep search each turn, weighing many more possible lines before committing. You'll need to actually out-maneuver it, not just outsmart it in the moment.</li>
+    </ul>
+  `,
+};
+
+function showHowtoTab(tabId){
+  document.querySelectorAll('.howto-tab-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.tab===tabId);
+  });
+  document.getElementById('howto-content').innerHTML = HOWTO_CONTENT[tabId];
+}
+document.querySelectorAll('.howto-tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>showHowtoTab(btn.dataset.tab));
+});
+document.getElementById('howto-btn').addEventListener('click', ()=>{
+  showHowtoTab('rules');
+  document.getElementById('howto-overlay').classList.add('show');
+});
+document.getElementById('howto-close-btn').addEventListener('click', ()=>{
+  document.getElementById('howto-overlay').classList.remove('show');
+});
+
+// ---------- secondary menu (log, piece reference, designer notes) ----------
+function showMenuTab(tabId){
+  document.querySelectorAll('.menu-tab-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.tab===tabId);
+  });
+  ['log','pieces','notes'].forEach(id=>{
+    document.getElementById('menu-tab-'+id).style.display = id===tabId ? 'block' : 'none';
+  });
+}
+document.querySelectorAll('.menu-tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>showMenuTab(btn.dataset.tab));
+});
+function openMenuOverlay(){
+  showMenuTab('log');
+  document.getElementById('menu-overlay').classList.add('show');
+}
+function closeMenuOverlay(){
+  document.getElementById('menu-overlay').classList.remove('show');
+}
+document.getElementById('menu-btn').addEventListener('click', openMenuOverlay);
+document.getElementById('menu-close-btn').addEventListener('click', closeMenuOverlay);
+document.getElementById('sound-toggle-btn').addEventListener('click', ()=> setSoundEnabled(!soundEnabled));
+updateSoundToggleBtn();
+
+render();
+openSetupOverlay(); // greet the player with the setup screen before their first game
+
+// Offline install support - no-ops harmlessly on file:// or plain http, since
+// service workers require a secure origin (https, or a real local server).
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>

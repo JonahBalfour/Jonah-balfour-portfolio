@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Search Dashboard</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --border:#e1e4e8; --text:#1f2328; --muted:#6b7280;
+    --accent:#2563eb; --accent-light:#dbeafe;
+    --wishlist:#9ca3af; --applied:#3b82f6; --phone:#8b5cf6; --interview:#f59e0b; --offer:#10b981; --closed:#ef4444;
+    --danger:#dc2626; --warn:#d97706; --ok:#059669;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+  }
+  header{
+    background:var(--card); border-bottom:1px solid var(--border);
+    padding:16px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+  }
+  header h1{ font-size:20px; margin:0; font-weight:700; }
+  header .sub{ color:var(--muted); font-size:13px; margin-top:2px; }
+  .header-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  input[type=text], input[type=search]{
+    padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none;
+  }
+  input[type=text]:focus, input[type=search]:focus{ border-color:var(--accent); }
+  button{
+    font-family:inherit; font-size:14px; padding:8px 14px; border-radius:8px; border:1px solid var(--border);
+    background:var(--card); color:var(--text); cursor:pointer; transition:background .15s;
+  }
+  button:hover{ background:#f0f1f3; }
+  button.primary{ background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  button.primary:hover{ background:#1d4ed8; }
+  button.danger{ color:var(--danger); }
+  button.small{ padding:4px 8px; font-size:12px; }
+
+  #userBadge{ font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  #userBadge img{ width:22px; height:22px; border-radius:50%; }
+
+  .stats{
+    display:flex; gap:12px; padding:16px 24px; flex-wrap:wrap;
+  }
+  .stat-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:12px 18px; flex:1; min-width:130px; box-shadow:var(--shadow);
+  }
+  .stat-card .num{ font-size:24px; font-weight:700; }
+  .stat-card .label{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .stat-card.warn .num{ color:var(--warn); }
+  .stat-card.ok .num{ color:var(--ok); }
+
+  .board{
+    display:flex; gap:14px; padding:0 24px 24px; overflow-x:auto; align-items:flex-start;
+  }
+  .column{
+    background:#eceef1; border-radius:var(--radius); min-width:250px; max-width:270px; flex:1 0 250px;
+    display:flex; flex-direction:column; max-height:calc(100vh - 220px);
+  }
+  .column-header{
+    padding:12px 14px 8px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0;
+  }
+  .column-title{ font-weight:700; font-size:13px; display:flex; align-items:center; gap:6px; }
+  .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .count-badge{ background:rgba(0,0,0,0.08); border-radius:10px; padding:1px 8px; font-size:12px; color:var(--muted); }
+  .column-body{ padding:0 10px 10px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; min-height:40px; }
+  .column-body.drag-over{ background:rgba(37,99,235,0.08); border-radius:8px; }
+
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+    box-shadow:var(--shadow); cursor:grab; position:relative;
+  }
+  .card:active{ cursor:grabbing; }
+  .card .company{ font-weight:700; font-size:14px; }
+  .card .role{ font-size:12.5px; color:var(--muted); margin-top:1px; }
+  .card .meta-row{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; align-items:center; }
+  .badge{
+    font-size:10.5px; padding:2px 6px; border-radius:5px; font-weight:600; display:inline-flex; align-items:center; gap:3px;
+  }
+  .badge.cl-yes, .badge.cv-yes{ background:#e6f4ea; color:var(--ok); }
+  .badge.cl-no, .badge.cv-no{ background:#f3f4f6; color:#9ca3af; }
+  .badge.followup-overdue{ background:#fde8e8; color:var(--danger); }
+  .badge.followup-soon{ background:#fef3c7; color:var(--warn); }
+  .badge.interview-count{ background:#ede9fe; color:#7c3aed; }
+
+  .card-actions{ margin-top:8px; border-top:1px solid var(--border); padding-top:8px; display:flex; flex-direction:column; gap:4px; }
+  .tailor-btn{
+    width:100%; font-size:11.5px; padding:5px 8px; border-radius:6px; border:1px solid var(--accent-light);
+    background:var(--accent-light); color:var(--accent); font-weight:600; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; gap:5px; transition:background .15s;
+  }
+  .tailor-btn:hover{ background:#c7ddfb; }
+  .tailor-btn.copied{ background:#e6f4ea; border-color:#e6f4ea; color:var(--ok); }
+  .claude-link-btn{
+    width:100%; font-size:11.5px; padding:6px 8px; border-radius:6px; border:1px solid var(--accent);
+    background:var(--accent); color:#fff; font-weight:600; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; gap:5px; transition:background .15s;
+  }
+  .claude-link-btn:hover{ background:#1d4ed8; }
+  .copy-fallback{
+    background:none; border:none; color:var(--muted); font-size:10.5px; cursor:pointer; text-decoration:underline;
+    padding:2px 0; text-align:center;
+  }
+  .copy-fallback:hover{ color:var(--accent); }
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); background:#1f2328; color:#fff;
+    padding:10px 18px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none; transition:all .25s; z-index:100;
+    box-shadow:0 8px 20px rgba(0,0,0,0.25);
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .empty-col{ color:var(--muted); font-size:12px; text-align:center; padding:20px 6px; }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(15,23,42,0.5); display:none; align-items:flex-start; justify-content:center;
+    padding:40px 16px; overflow-y:auto; z-index:50;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background:var(--card); border-radius:12px; width:100%; max-width:620px; box-shadow:0 20px 50px rgba(0,0,0,0.25);
+  }
+  .modal-header{
+    padding:18px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;
+  }
+  .modal-header h2{ margin:0; font-size:17px; }
+  .modal-body{ padding:20px 22px; display:flex; flex-direction:column; gap:14px; }
+  .modal-footer{
+    padding:16px 22px; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:8px;
+  }
+  .form-row{ display:flex; gap:12px; flex-wrap:wrap; }
+  .form-field{ flex:1; min-width:180px; display:flex; flex-direction:column; gap:4px; }
+  .form-field label{ font-size:12px; font-weight:600; color:var(--muted); }
+  .form-field input, .form-field select, .form-field textarea{
+    padding:8px 10px; border:1px solid var(--border); border-radius:7px; font-size:14px; font-family:inherit; outline:none; width:100%;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus{ border-color:var(--accent); }
+  textarea{ resize:vertical; min-height:60px; }
+  .checkbox-field{ flex-direction:row; align-items:center; gap:8px; }
+  .checkbox-field input{ width:auto; }
+  fieldset{ border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin:0; }
+  legend{ font-size:12.5px; font-weight:700; padding:0 4px; color:var(--text); }
+  .interview-row{
+    display:flex; gap:8px; align-items:flex-start; margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed var(--border);
+    flex-wrap:wrap;
+  }
+  .interview-row:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .interview-row .form-field{ min-width:120px; }
+  .close-x{ background:none; border:none; font-size:20px; cursor:pointer; color:var(--muted); padding:0 4px; }
+  .link-row{ font-size:12px; color:var(--muted); }
+  .link-row a{ color:var(--accent); }
+
+  .file-attachment{ font-size:11.5px; color:var(--muted); margin-top:5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .file-attachment a{ color:var(--accent); text-decoration:none; }
+  .file-attachment a:hover{ text-decoration:underline; }
+  .file-remove-btn{ background:none; border:none; color:var(--danger); font-size:11px; cursor:pointer; padding:0; text-decoration:underline; }
+  .badge.file-yes{ background:#ede9fe; color:#7c3aed; }
+
+  footer{ text-align:center; padding:20px; color:var(--muted); font-size:12px; }
+
+  @media (max-width:700px){
+    .board{ flex-direction:column; }
+    .column{ max-width:none; max-height:none; }
+  }
+
+  /* Auth gate */
+  #authGate{
+    position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:300;
+  }
+  #authGate.hidden{ display:none; }
+  .auth-box{
+    background:var(--card); border:1px solid var(--border); border-radius:14px; padding:40px 44px; text-align:center;
+    box-shadow:var(--shadow); max-width:360px;
+  }
+  .auth-box h1{ font-size:19px; margin:0 0 6px; }
+  .auth-box p{ color:var(--muted); font-size:13.5px; margin:0 0 20px; }
+  .auth-box button{ width:100%; padding:10px 16px; font-size:14px; }
+  .auth-error{ color:var(--danger); font-size:12.5px; margin-top:12px; min-height:1em; }
+  .config-warning{
+    background:#fef3c7; color:#92400e; border-radius:8px; padding:12px 14px; font-size:12.5px; text-align:left; margin-top:16px;
+    display:none;
+  }
+  .config-warning.show{ display:block; }
+
+  #appShell{ display:none; }
+  #appShell.visible{ display:block; }
+</style>
+</head>
+<body>
+
+<div id="authGate">
+  <div class="auth-box">
+    <h1>Job Search Dashboard</h1>
+    <p>Sign in with Google to view your board. Your data is private to your account.</p>
+    <button class="primary" id="googleSignInBtn">Sign in with Google</button>
+    <div class="auth-error" id="authError"></div>
+    <div class="config-warning" id="configWarning">
+      Firebase isn't configured yet. Open this file, find the <code>firebaseConfig</code> object near the top of the
+      &lt;script&gt; tag, and paste in the values from your Firebase project settings. See the setup guide for details.
+    </div>
+  </div>
+</div>
+
+<div id="appShell">
+  <header>
+    <div>
+      <h1>Job Search Dashboard</h1>
+      <div class="sub" id="subTagline">Track applications, documents, follow-ups, and interviews.</div>
+    </div>
+    <div class="header-actions">
+      <span id="userBadge"></span>
+      <input type="search" id="searchBox" placeholder="Search company or role...">
+      <button id="exportBtn">Export</button>
+      <button id="importBtn">Import</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+      <button class="primary" id="addJobBtn">+ Add Job</button>
+      <button id="signOutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <div class="stats" id="statsBar"></div>
+
+  <div class="board" id="board"></div>
+
+  <footer id="footerNote">Signed in — your data syncs to any device where you sign in with this Google account.</footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Add Job</h2>
+      <button class="close-x" id="closeModalBtn">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="form-row">
+        <div class="form-field">
+          <label>Company *</label>
+          <input type="text" id="f-company" placeholder="Acme Inc.">
+        </div>
+        <div class="form-field">
+          <label>Role / Title *</label>
+          <input type="text" id="f-role" placeholder="Senior Product Manager">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Location</label>
+          <input type="text" id="f-location" placeholder="Remote / City">
+        </div>
+        <div class="form-field">
+          <label>Job Link</label>
+          <input type="text" id="f-link" placeholder="https://...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="wishlist">Wishlist</option>
+            <option value="applied">Applied</option>
+            <option value="phone_screen">Phone Screen</option>
+            <option value="interview">Interview</option>
+            <option value="offer">Offer</option>
+            <option value="closed">Closed (Rejected/Withdrawn)</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Date Applied</label>
+          <input type="date" id="f-dateApplied">
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>Documents</legend>
+        <div class="form-row">
+          <div class="form-field checkbox-field">
+            <input type="checkbox" id="f-clSent">
+            <label style="margin:0;">Cover letter sent</label>
+          </div>
+          <div class="form-field">
+            <label>Cover letter date</label>
+            <input type="date" id="f-clDate">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field checkbox-field">
+            <input type="checkbox" id="f-cvSent">
+            <label style="margin:0;">CV / resume sent</label>
+          </div>
+          <div class="form-field">
+            <label>CV version used</label>
+            <input type="text" id="f-cvVersion" placeholder="e.g. CV_v3_tech.pdf">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Attach tailored CV (PDF/Word, under 300KB)</label>
+            <input type="file" id="f-cvFile" accept=".pdf,.doc,.docx">
+            <div class="file-attachment" id="cvFileInfo"></div>
+          </div>
+          <div class="form-field">
+            <label>Attach tailored cover letter (PDF/Word, under 300KB)</label>
+            <input type="file" id="f-clFile" accept=".pdf,.doc,.docx">
+            <div class="file-attachment" id="clFileInfo"></div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Follow-up</legend>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Follow-up due date</label>
+            <input type="date" id="f-followUp">
+          </div>
+          <div class="form-field">
+            <label>Next action</label>
+            <input type="text" id="f-nextAction" placeholder="e.g. Email recruiter">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Interviews</legend>
+        <div id="interviewList"></div>
+        <button type="button" class="small" id="addInterviewBtn" style="margin-top:6px;">+ Add interview round</button>
+      </fieldset>
+
+      <div class="form-field">
+        <label>Notes</label>
+        <textarea id="f-notes" placeholder="Anything worth remembering..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="danger" id="deleteBtn" style="display:none;">Delete</button>
+      <div style="flex:1;"></div>
+      <button id="copyPromptBtn" title="Copy a ready-made prompt to paste into a Claude chat">✎ Copy Tailoring Prompt</button>
+      <button id="openClaudeBtn" title="Open a new Claude Cowork session with this prompt, your CV, and the Applications folder attached" style="background:var(--accent); color:#fff; border-color:var(--accent);">🔗 Open in Claude</button>
+      <button id="cancelBtn">Cancel</button>
+      <button class="primary" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase (compat SDK — works with plain <script> tags, no build step needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<script>
+(function(){
+  // ================== FIREBASE SETUP ==================
+  // Paste the config object from Firebase Console → Project settings → Your apps → Web app.
+  // This "API key" is safe to be public — Firebase security comes from the Firestore rules
+  // you set separately (see firestore.rules), not from hiding this config. See the setup guide.
+  const firebaseConfig = {
+    apiKey: "AIzaSyBwL9nhejCGwmihQk1XKqBXNDsFn5FAwGY",
+    authDomain: "jobs-dashboard-ecfd7.firebaseapp.com",
+    projectId: "jobs-dashboard-ecfd7",
+    storageBucket: "jobs-dashboard-ecfd7.firebasestorage.app",
+    messagingSenderId: "69448272061",
+    appId: "1:69448272061:web:a9c40b6b7a89e2b4a10fd4"
+  };
+  const CONFIG_IS_SET = firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('PASTE_') !== 0;
+  // ======================================================
+
+  // Update these if your master CV moves, or once you have a master cover letter to reference too.
+  // Note: these paths point at files on your Mac — they're just text embedded in the copied prompt,
+  // meant to be read by you/Claude in a chat, not fetched by the web page itself.
+  const CV_PATH = '/Users/jonahbalfour/Documents/Claude Stuff/Job Search Dashboard/CV/JonahBalfourCV2024.pdf';
+  const APPLICATIONS_DIR = '/Users/jonahbalfour/Documents/Claude Stuff/Job Search Dashboard/Applications';
+
+  const STATUSES = [
+    {key:'wishlist', label:'Wishlist', color:'var(--wishlist)'},
+    {key:'applied', label:'Applied', color:'var(--applied)'},
+    {key:'phone_screen', label:'Phone Screen', color:'var(--phone)'},
+    {key:'interview', label:'Interview', color:'var(--interview)'},
+    {key:'offer', label:'Offer', color:'var(--offer)'},
+    {key:'closed', label:'Closed', color:'var(--closed)'}
+  ];
+
+  let jobs = [];
+  let editingId = null;
+  let searchTerm = '';
+  let currentUser = null;
+  let unsubscribeJobs = null;
+
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function daysUntil(dateStr){
+    if(!dateStr) return null;
+    const d = new Date(dateStr + 'T00:00:00');
+    const now = new Date(); now.setHours(0,0,0,0);
+    return Math.round((d - now) / 86400000);
+  }
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- Firestore data layer ----------
+  // Each signed-in user's jobs live at users/{uid}/jobs/{jobId}. Firestore security rules (see
+  // firestore.rules) make sure only that user's own account can read or write their subcollection.
+  let db = null, auth = null;
+  if(CONFIG_IS_SET){
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+  }
+
+  function jobsCollection(){
+    return db.collection('users').doc(currentUser.uid).collection('jobs');
+  }
+  function startJobsListener(){
+    if(unsubscribeJobs) unsubscribeJobs();
+    unsubscribeJobs = jobsCollection().onSnapshot(snap => {
+      jobs = snap.docs.map(d => Object.assign({id: d.id}, d.data()));
+      render();
+    }, err => {
+      console.error(err);
+      showToast('Could not load jobs: ' + err.message);
+    });
+  }
+  function addJobDoc(data){ return jobsCollection().add(data); }
+  function updateJobDoc(id, data){ return jobsCollection().doc(id).update(data); }
+  function deleteJobDoc(id){ return jobsCollection().doc(id).delete(); }
+
+  // ---------- Auth ----------
+  const authGate = document.getElementById('authGate');
+  const appShell = document.getElementById('appShell');
+  const authError = document.getElementById('authError');
+
+  if(!CONFIG_IS_SET){
+    document.getElementById('configWarning').classList.add('show');
+    document.getElementById('googleSignInBtn').disabled = true;
+  }
+
+  document.getElementById('googleSignInBtn').addEventListener('click', () => {
+    if(!auth) return;
+    authError.textContent = '';
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => {
+      authError.textContent = err.message;
+    });
+  });
+
+  document.getElementById('signOutBtn').addEventListener('click', () => {
+    if(auth) auth.signOut();
+  });
+
+  if(auth){
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      if(user){
+        authGate.classList.add('hidden');
+        appShell.classList.add('visible');
+        const badge = document.getElementById('userBadge');
+        badge.innerHTML = (user.photoURL ? `<img src="${user.photoURL}" alt="">` : '') +
+          `<span>${escapeHtml(user.displayName || user.email || '')}</span>`;
+        startJobsListener();
+      } else {
+        if(unsubscribeJobs){ unsubscribeJobs(); unsubscribeJobs = null; }
+        jobs = [];
+        authGate.classList.remove('hidden');
+        appShell.classList.remove('visible');
+      }
+    });
+  }
+
+  // ---------- Tailoring shortcut ----------
+  function buildTailorPrompt(job){
+    const folder = `${APPLICATIONS_DIR}/${job.company} - ${job.role}`;
+    const lines = [
+      `Help me tailor my CV and write a cover letter for this job:`,
+      ``,
+      `Company: ${job.company || '(not set)'}`,
+      `Role: ${job.role || '(not set)'}`
+    ];
+    if(job.location) lines.push(`Location: ${job.location}`);
+    if(job.link) lines.push(`Job link: ${job.link}`);
+    if(job.notes) lines.push(`Notes: ${job.notes}`);
+    lines.push(``);
+    lines.push(`My master CV is at: ${CV_PATH}`);
+    lines.push(`I don't have a master cover letter yet — please draft one from scratch based on my CV and this role.`);
+    lines.push(``);
+    lines.push(`Please tailor my CV to highlight the experience most relevant to this role, and write a matching cover letter. Save both to: ${folder}/`);
+    return lines.join('\n');
+  }
+
+  // Builds a claude://cowork/new deep link — opens Claude Desktop directly to a new Cowork session
+  // with the prompt prefilled. Note: we deliberately don't attach `file` or `folder` here — any
+  // attachment confirmation dialog appears to reset the composer text afterward, wiping out the
+  // prompt. The CV path and destination folder are already spelled out in the prompt text itself,
+  // so nothing is lost — just an extra step of Claude opening the CV file itself once you send it.
+  // Only works if Claude Desktop is installed on the device clicking it; the "Copy prompt" fallback
+  // covers other devices or other AI tools.
+  function buildClaudeCoworkUrl(job){
+    const prompt = buildTailorPrompt(job);
+    return 'claude://cowork/new?q=' + encodeURIComponent(prompt);
+  }
+
+  function openInClaude(job){
+    if(!job.company || !job.role){
+      alert('Fill in Company and Role first so the prompt has something to work with.');
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = buildClaudeCoworkUrl(job);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast(`Opening Claude Cowork for ${job.company}… (needs Claude Desktop installed)`);
+  }
+
+  function copyToClipboard(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+  function legacyCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  let toastTimer = null;
+  function showToast(msg){
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  // ---------- Rendering ----------
+  function render(){
+    renderStats();
+    renderBoard();
+  }
+
+  function renderStats(){
+    const total = jobs.length;
+    const active = jobs.filter(j => !['closed'].includes(j.status)).length;
+    const interviews = jobs.filter(j => j.status === 'interview' || j.status === 'phone_screen').length;
+    const offers = jobs.filter(j => j.status === 'offer').length;
+    const dueSoon = jobs.filter(j => {
+      const d = daysUntil(j.followUp);
+      return d !== null && d <= 2 && j.status !== 'closed';
+    }).length;
+
+    const stats = [
+      {label:'Total Applications', num: total, cls:''},
+      {label:'Active Pipeline', num: active, cls:''},
+      {label:'Interviews In Progress', num: interviews, cls:'ok'},
+      {label:'Offers', num: offers, cls:'ok'},
+      {label:'Follow-ups Due', num: dueSoon, cls: dueSoon > 0 ? 'warn' : ''}
+    ];
+    document.getElementById('statsBar').innerHTML = stats.map(s => `
+      <div class="stat-card ${s.cls}">
+        <div class="num">${s.num}</div>
+        <div class="label">${s.label}</div>
+      </div>
+    `).join('');
+  }
+
+  function filteredJobs(){
+    if(!searchTerm) return jobs;
+    const t = searchTerm.toLowerCase();
+    return jobs.filter(j => (j.company||'').toLowerCase().includes(t) || (j.role||'').toLowerCase().includes(t));
+  }
+
+  function renderBoard(){
+    const board = document.getElementById('board');
+    const fj = filteredJobs();
+    board.innerHTML = STATUSES.map(st => {
+      const colJobs = fj.filter(j => j.status === st.key);
+      return `
+        <div class="column" data-status="${st.key}">
+          <div class="column-header">
+            <div class="column-title"><span class="dot" style="background:${st.color}"></span>${st.label}</div>
+            <span class="count-badge">${colJobs.length}</span>
+          </div>
+          <div class="column-body" data-status="${st.key}">
+            ${colJobs.length ? colJobs.map(cardHtml).join('') : `<div class="empty-col">No jobs here</div>`}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Card click -> open modal
+    board.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => openModal(card.dataset.id));
+      card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', card.dataset.id);
+        card.style.opacity = '0.5';
+      });
+      card.addEventListener('dragend', () => { card.style.opacity = '1'; });
+    });
+
+    // Per-card "Open in Claude" button (claude://cowork deep link)
+    board.querySelectorAll('.claude-link-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const job = jobs.find(j => j.id === btn.dataset.claudeId);
+        if(!job) return;
+        openInClaude(job);
+      });
+    });
+
+    // Per-card "Copy prompt instead" fallback
+    board.querySelectorAll('.copy-fallback').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const job = jobs.find(j => j.id === btn.dataset.tailorId);
+        if(!job) return;
+        copyToClipboard(buildTailorPrompt(job)).then(() => {
+          showToast(`Prompt copied for ${job.company} — paste it into a Claude chat.`);
+          const original = btn.textContent;
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = original; }, 1800);
+        });
+      });
+    });
+
+    // Column drop targets
+    board.querySelectorAll('.column-body').forEach(col => {
+      col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+      col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+      col.addEventListener('drop', e => {
+        e.preventDefault();
+        col.classList.remove('drag-over');
+        const id = e.dataTransfer.getData('text/plain');
+        updateJobDoc(id, {status: col.dataset.status}).catch(err => showToast('Update failed: ' + err.message));
+      });
+    });
+  }
+
+  function cardHtml(j){
+    const badges = [];
+    badges.push(`<span class="badge ${j.coverLetterSent ? 'cl-yes':'cl-no'}">CL ${j.coverLetterSent ? '✓' : '–'}</span>`);
+    badges.push(`<span class="badge ${j.cvSent ? 'cv-yes':'cv-no'}">CV ${j.cvSent ? '✓' : '–'}</span>`);
+    if(j.cvFile) badges.push(`<span class="badge file-yes" title="${escapeHtml(j.cvFile.name)}">📎 CV file</span>`);
+    if(j.coverLetterFile) badges.push(`<span class="badge file-yes" title="${escapeHtml(j.coverLetterFile.name)}">📎 CL file</span>`);
+    if(j.interviews && j.interviews.length){
+      badges.push(`<span class="badge interview-count">${j.interviews.length} interview${j.interviews.length>1?'s':''}</span>`);
+    }
+    const d = daysUntil(j.followUp);
+    if(d !== null && j.status !== 'closed'){
+      if(d < 0) badges.push(`<span class="badge followup-overdue">Follow-up overdue</span>`);
+      else if(d <= 2) badges.push(`<span class="badge followup-soon">Follow-up in ${d}d</span>`);
+    }
+    return `
+      <div class="card" draggable="true" data-id="${j.id}">
+        <div class="company">${escapeHtml(j.company)}</div>
+        <div class="role">${escapeHtml(j.role)}${j.location ? ' · ' + escapeHtml(j.location) : ''}</div>
+        <div class="meta-row">${badges.join('')}</div>
+        <div class="card-actions">
+          <button type="button" class="claude-link-btn" data-claude-id="${j.id}">🔗 Open in Claude</button>
+          <button type="button" class="copy-fallback" data-tailor-id="${j.id}">Copy prompt instead</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Modal ----------
+  const overlay = document.getElementById('overlay');
+  const modalTitle = document.getElementById('modalTitle');
+  const deleteBtn = document.getElementById('deleteBtn');
+  let interviewDraft = [];
+
+  // ---------- File attachments ----------
+  // Files are stored as base64 data URLs directly on the job document (not Firebase Storage —
+  // that now requires the paid Blaze billing plan even for free-tier usage, which felt like an
+  // unnecessary hurdle for a personal tool). Firestore documents cap out at 1MiB, so we keep each
+  // attachment small; a normal tailored CV/cover letter PDF is well under this.
+  // Capped at 300KB per file so a CV *and* cover letter attached to the same job stay comfortably
+  // under Firestore's 1MiB document limit even when base64-encoded (which inflates size by ~33%).
+  const MAX_ATTACHMENT_BYTES = 300 * 1024;
+  // undefined = no change from what's saved; an object = a newly picked file; null = "remove this file"
+  let cvFileDraft, clFileDraft;
+
+  function readFileAsAttachment(file){
+    return new Promise((resolve, reject) => {
+      if(file.size > MAX_ATTACHMENT_BYTES){
+        reject(new Error(`"${file.name}" is ${Math.round(file.size/1024)}KB — please keep attachments under ${Math.round(MAX_ATTACHMENT_BYTES/1024)}KB (try exporting a lighter PDF).`));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve({
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        dataUrl: reader.result,
+        uploadedAt: new Date().toISOString()
+      });
+      reader.onerror = () => reject(reader.error || new Error('Could not read that file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function renderFileInfo(kind){
+    // kind: 'cv' or 'cl'
+    const draft = kind === 'cv' ? cvFileDraft : clFileDraft;
+    const existing = editingId ? jobs.find(j => j.id === editingId) : null;
+    const savedFile = existing ? (kind === 'cv' ? existing.cvFile : existing.coverLetterFile) : null;
+    const wrap = document.getElementById(kind === 'cv' ? 'cvFileInfo' : 'clFileInfo');
+
+    if(draft === null){
+      wrap.innerHTML = `<span>Will be removed when you save.</span> <button type="button" class="file-remove-btn" data-undo="${kind}">Undo</button>`;
+    } else if(draft && draft.dataUrl){
+      wrap.innerHTML = `<span>New file: ${escapeHtml(draft.name)} (${Math.round(draft.size/1024)}KB) — will save on Save.</span>`;
+    } else if(savedFile){
+      wrap.innerHTML = `<a href="${savedFile.dataUrl}" download="${escapeHtml(savedFile.name)}">📄 ${escapeHtml(savedFile.name)}</a> ` +
+        `<span>(${Math.round((savedFile.size||0)/1024)}KB)</span> ` +
+        `<button type="button" class="file-remove-btn" data-remove="${kind}">Remove</button>`;
+    } else {
+      wrap.innerHTML = `<span>No file attached yet.</span>`;
+    }
+
+    wrap.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(btn.dataset.remove === 'cv'){ cvFileDraft = null; } else { clFileDraft = null; }
+        renderFileInfo(btn.dataset.remove);
+      });
+    });
+    wrap.querySelectorAll('[data-undo]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(btn.dataset.undo === 'cv'){ cvFileDraft = undefined; } else { clFileDraft = undefined; }
+        renderFileInfo(btn.dataset.undo);
+      });
+    });
+  }
+
+  document.getElementById('f-cvFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      cvFileDraft = await readFileAsAttachment(file);
+      renderFileInfo('cv');
+    }catch(err){
+      alert(err.message);
+    }
+    e.target.value = '';
+  });
+  document.getElementById('f-clFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      clFileDraft = await readFileAsAttachment(file);
+      renderFileInfo('cl');
+    }catch(err){
+      alert(err.message);
+    }
+    e.target.value = '';
+  });
+
+  function openModal(id){
+    editingId = id || null;
+    const job = id ? jobs.find(j => j.id === id) : null;
+    modalTitle.textContent = job ? `Edit: ${job.company}` : 'Add Job';
+    deleteBtn.style.display = job ? 'inline-block' : 'none';
+
+    document.getElementById('f-company').value = job ? job.company : '';
+    document.getElementById('f-role').value = job ? job.role : '';
+    document.getElementById('f-location').value = job ? (job.location||'') : '';
+    document.getElementById('f-link').value = job ? (job.link||'') : '';
+    document.getElementById('f-status').value = job ? job.status : 'wishlist';
+    document.getElementById('f-dateApplied').value = job ? (job.dateApplied||'') : '';
+    document.getElementById('f-clSent').checked = job ? !!job.coverLetterSent : false;
+    document.getElementById('f-clDate').value = job ? (job.coverLetterDate||'') : '';
+    document.getElementById('f-cvSent').checked = job ? !!job.cvSent : false;
+    document.getElementById('f-cvVersion').value = job ? (job.cvVersion||'') : '';
+    document.getElementById('f-followUp').value = job ? (job.followUp||'') : '';
+    document.getElementById('f-nextAction').value = job ? (job.nextAction||'') : '';
+    document.getElementById('f-notes').value = job ? (job.notes||'') : '';
+
+    interviewDraft = job && job.interviews ? JSON.parse(JSON.stringify(job.interviews)) : [];
+    renderInterviewList();
+
+    cvFileDraft = undefined;
+    clFileDraft = undefined;
+    renderFileInfo('cv');
+    renderFileInfo('cl');
+
+    overlay.classList.add('open');
+    document.getElementById('f-company').focus();
+  }
+
+  function closeModal(){
+    overlay.classList.remove('open');
+    editingId = null;
+  }
+
+  function renderInterviewList(){
+    const wrap = document.getElementById('interviewList');
+    if(!interviewDraft.length){
+      wrap.innerHTML = `<div style="font-size:12.5px;color:var(--muted);">No interview rounds added yet.</div>`;
+      return;
+    }
+    wrap.innerHTML = interviewDraft.map((iv, idx) => `
+      <div class="interview-row" data-idx="${idx}">
+        <div class="form-field" style="min-width:130px;">
+          <label>Date</label>
+          <input type="date" class="iv-date" value="${iv.date||''}">
+        </div>
+        <div class="form-field" style="min-width:140px;">
+          <label>Type</label>
+          <input type="text" class="iv-type" placeholder="e.g. Onsite, Tech" value="${escapeHtml(iv.type||'')}">
+        </div>
+        <div class="form-field" style="flex:2;">
+          <label>Notes / Outcome</label>
+          <input type="text" class="iv-notes" placeholder="Notes or outcome" value="${escapeHtml(iv.notes||'')}">
+        </div>
+        <button type="button" class="close-x remove-iv" title="Remove">&times;</button>
+      </div>
+    `).join('');
+
+    wrap.querySelectorAll('.interview-row').forEach(row => {
+      const idx = +row.dataset.idx;
+      row.querySelector('.iv-date').addEventListener('input', e => interviewDraft[idx].date = e.target.value);
+      row.querySelector('.iv-type').addEventListener('input', e => interviewDraft[idx].type = e.target.value);
+      row.querySelector('.iv-notes').addEventListener('input', e => interviewDraft[idx].notes = e.target.value);
+      row.querySelector('.remove-iv').addEventListener('click', () => {
+        interviewDraft.splice(idx, 1);
+        renderInterviewList();
+      });
+    });
+  }
+
+  document.getElementById('addInterviewBtn').addEventListener('click', () => {
+    interviewDraft.push({date:'', type:'', notes:''});
+    renderInterviewList();
+  });
+
+  document.getElementById('copyPromptBtn').addEventListener('click', () => {
+    const draftJob = {
+      company: document.getElementById('f-company').value.trim(),
+      role: document.getElementById('f-role').value.trim(),
+      location: document.getElementById('f-location').value.trim(),
+      link: document.getElementById('f-link').value.trim(),
+      notes: document.getElementById('f-notes').value.trim()
+    };
+    if(!draftJob.company || !draftJob.role){
+      alert('Fill in Company and Role first so the prompt has something to work with.');
+      return;
+    }
+    copyToClipboard(buildTailorPrompt(draftJob)).then(() => {
+      showToast(`Prompt copied for ${draftJob.company} — paste it into a Claude chat.`);
+    });
+  });
+
+  document.getElementById('openClaudeBtn').addEventListener('click', () => {
+    const draftJob = {
+      company: document.getElementById('f-company').value.trim(),
+      role: document.getElementById('f-role').value.trim(),
+      location: document.getElementById('f-location').value.trim(),
+      link: document.getElementById('f-link').value.trim(),
+      notes: document.getElementById('f-notes').value.trim()
+    };
+    openInClaude(draftJob);
+  });
+
+  document.getElementById('addJobBtn').addEventListener('click', () => openModal(null));
+  document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if(e.target === overlay) closeModal(); });
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const company = document.getElementById('f-company').value.trim();
+    const role = document.getElementById('f-role').value.trim();
+    if(!company || !role){
+      alert('Company and Role are required.');
+      return;
+    }
+    const data = {
+      company, role,
+      location: document.getElementById('f-location').value.trim(),
+      link: document.getElementById('f-link').value.trim(),
+      status: document.getElementById('f-status').value,
+      dateApplied: document.getElementById('f-dateApplied').value,
+      coverLetterSent: document.getElementById('f-clSent').checked,
+      coverLetterDate: document.getElementById('f-clDate').value,
+      cvSent: document.getElementById('f-cvSent').checked,
+      cvVersion: document.getElementById('f-cvVersion').value.trim(),
+      followUp: document.getElementById('f-followUp').value,
+      nextAction: document.getElementById('f-nextAction').value.trim(),
+      notes: document.getElementById('f-notes').value.trim(),
+      interviews: interviewDraft.filter(iv => iv.date || iv.type || iv.notes)
+    };
+    // cvFileDraft/clFileDraft: undefined = don't touch the field, object = new file, null = clear it
+    if(cvFileDraft !== undefined) data.cvFile = cvFileDraft;
+    if(clFileDraft !== undefined) data.coverLetterFile = clFileDraft;
+
+    const action = editingId
+      ? updateJobDoc(editingId, data)
+      : addJobDoc(Object.assign({dateAdded: todayStr()}, data));
+
+    action.then(() => {
+      closeModal();
+    }).catch(err => {
+      alert('Save failed: ' + err.message);
+    });
+  });
+
+  deleteBtn.addEventListener('click', () => {
+    if(!editingId) return;
+    if(confirm('Delete this job entry? This cannot be undone.')){
+      deleteJobDoc(editingId).then(() => {
+        closeModal();
+      }).catch(err => alert('Delete failed: ' + err.message));
+    }
+  });
+
+  // ---------- Search ----------
+  document.getElementById('searchBox').addEventListener('input', e => {
+    searchTerm = e.target.value;
+    renderBoard();
+  });
+
+  // ---------- Export / Import ----------
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(jobs, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `job-search-dashboard-backup-${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('importFile').click();
+  });
+  document.getElementById('importFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try{
+        const imported = JSON.parse(evt.target.result);
+        if(!Array.isArray(imported)) throw new Error('Invalid file format');
+
+        // MERGE by company+role (case-insensitive), never wipe existing entries. New leads from the
+        // scheduled search, or a full backup previously exported from this or another install — either way,
+        // duplicates already on the board are skipped and everything else is written to Firestore.
+        const key = j => `${(j.company||'').trim().toLowerCase()}|${(j.role||'').trim().toLowerCase()}`;
+        const existingKeys = new Set(jobs.map(key));
+        const batch = db.batch();
+        let added = 0, skipped = 0;
+        imported.forEach(raw => {
+          if(!raw.company || !raw.role) return;
+          const k = key(raw);
+          if(existingKeys.has(k)){ skipped++; return; }
+          const job = {
+            company: raw.company,
+            role: raw.role,
+            location: raw.location || '',
+            link: raw.link || '',
+            status: raw.status || 'wishlist',
+            dateAdded: raw.dateAdded || todayStr(),
+            dateApplied: raw.dateApplied || '',
+            coverLetterSent: !!raw.coverLetterSent,
+            coverLetterDate: raw.coverLetterDate || '',
+            cvSent: !!raw.cvSent,
+            cvVersion: raw.cvVersion || '',
+            followUp: raw.followUp || '',
+            nextAction: raw.nextAction || '',
+            notes: raw.notes || '',
+            interviews: Array.isArray(raw.interviews) ? raw.interviews : []
+          };
+          batch.set(jobsCollection().doc(), job);
+          existingKeys.add(k);
+          added++;
+        });
+        batch.commit().then(() => {
+          alert(`Imported ${added} new job${added===1?'':'s'}.${skipped ? ` Skipped ${skipped} already on your board.` : ''}`);
+        }).catch(err => alert('Import failed: ' + err.message));
+      }catch(err){
+        alert('Could not import file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ---------- Keyboard ----------
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+  });
+})();
+</script>
+
+</body>
+</html>
